@@ -27,27 +27,6 @@
 			"angle":200
 		},
 		{
-			"name":"house",
-			"type":"PREFAB",
-			"filename":"prefabs/house_test/scene.gltf",
-			"position":[300,0,200],
-			"scale":[0.4,0.4,0.4]
-		},
-		{
-			"name":"house",
-			"type":"PREFAB",
-			"filename":"prefabs/house_test/scene.gltf",
-			"position":[300,0,-200],
-			"scale":[0.4,0.4,0.4]
-		},
-		{
-			"name":"trash",
-			"type":"PREFAB",
-			"filename":"prefabs/trash_can/scene.gltf",
-			"position":[140,0,110],
-			"scale":[0.5,0.5,0.5]
-		},
-		{
 			"name":"tree",
 			"type":"PREFAB",
 			"filename":"prefabs/tree/scene.gltf",

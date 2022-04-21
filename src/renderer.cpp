@@ -13,6 +13,14 @@
 
 using namespace GTR;
 
+bool translucent_draw_call_distance_comp(const GTR::sDrawCall& d1, const GTR::sDrawCall& d2) {
+	return d1.camera_distance > d2.camera_distance;
+}
+bool opaque_draw_call_distance_comp(const GTR::sDrawCall& d1, const GTR::sDrawCall& d2) {
+	return d1.camera_distance < d2.camera_distance;
+}
+
+
 void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 {
 	//set the clear color (the background color)
@@ -33,10 +41,31 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 		if (ent->entity_type == PREFAB)
 		{
 			PrefabEntity* pent = (GTR::PrefabEntity*)ent;
-			if(pent->prefab)
-				renderPrefab(ent->model, pent->prefab, camera);
+			if (pent->prefab) {
+				add_to_render_queue(ent->model, &(pent->prefab->root), camera);
+			}
+			else {
+				assert("PREFAB IS NULL");
+			}
 		}
 	}
+
+	// Order the opaque & translucent
+	std::sort(_opaque_objects.begin(), _opaque_objects.end(), opaque_draw_call_distance_comp);
+	std::sort(_translucent_objects.begin(), _translucent_objects.end(), translucent_draw_call_distance_comp);
+
+	// First, render the opaque object
+	for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
+		renderDrawCall(_opaque_objects[i]);
+	}
+
+	// then, render the translucnet, and masked objects
+	for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
+		renderDrawCall(_translucent_objects[i]);
+	}
+
+	_opaque_objects.clear();
+	_translucent_objects.clear();
 }
 
 //renders all the prefab
@@ -80,9 +109,9 @@ void Renderer::renderNode(const Matrix44& prefab_model, GTR::Node* node, Camera*
 void Renderer::renderMeshWithMaterial(const Matrix44 model, Mesh* mesh, GTR::Material* material, Camera* camera)
 {
 	//in case there is nothing to do
-	if (!mesh || !mesh->getNumVertices() || !material )
+	if (!mesh || !mesh->getNumVertices() || !material)
 		return;
-    assert(glGetError() == GL_NO_ERROR);
+	assert(glGetError() == GL_NO_ERROR);
 
 	//define locals to simplify coding
 	Shader* shader = NULL;
@@ -172,4 +201,49 @@ Texture* GTR::CubemapFromHDRE(const char* filename)
 					(Uint8**)hdre->getFacesh(i), GL_RGBA16F, i);
 		}
 	return texture;
+}
+
+
+// =================================
+//   CUSTOM METHODS
+// =================================
+
+void Renderer::add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node, Camera* camera) {
+	if (!node->visible)
+		return;
+
+	//compute global matrix
+	Matrix44 node_model = node->getGlobalMatrix(true) * prefab_model;
+
+	//does this node have a mesh? then we must render it
+	if (node->mesh && node->material)
+	{
+		//compute the bounding box of the object in world space (by using the mesh bounding box transformed to world space)
+		BoundingBox world_bounding = transformBoundingBox(node_model, node->mesh->box);
+
+		//if bounding box is inside the camera frustum then the object is probably visible
+		if (camera->testBoxInFrustum(world_bounding.center, world_bounding.halfsize))
+		{
+			// Add to the queue
+
+			// Compute the closest distance between the bounding box of the mesh and the camera
+			float camera_distance = Min((world_bounding.center + world_bounding.halfsize).distance(camera->eye), world_bounding.center.distance(camera->eye));
+			camera_distance = Min(camera_distance, (world_bounding.center - world_bounding.halfsize).distance(camera->eye));
+			add_draw_instance(node_model, node->mesh, node->material, camera, world_bounding.center.distance(camera->eye));
+		}
+	}
+
+	//iterate recursively with children
+	for (int i = 0; i < node->children.size(); ++i)
+		add_to_render_queue(prefab_model, node->children[i], camera);
+}
+
+void Renderer::add_draw_instance(const Matrix44 model, Mesh* mesh, GTR::Material* material, Camera* camera, const float camera_distance) {
+	// Based on the material, we add it to the translucent or the opaque queue
+	if (material->alpha_mode != NO_ALPHA) {
+		_translucent_objects.push_back(sDrawCall{ model, mesh, material, camera, camera_distance });
+	}
+	else {
+		_opaque_objects.push_back(sDrawCall{ model, mesh, material, camera,  camera_distance });
+	}
 }
