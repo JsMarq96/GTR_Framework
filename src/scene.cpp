@@ -125,8 +125,12 @@ bool GTR::Scene::load(const char* filename)
 
 GTR::BaseEntity* GTR::Scene::createEntity(std::string type)
 {
-	if (type == "PREFAB")
+	if (type == "PREFAB") {
 		return new GTR::PrefabEntity();
+	} else if (type == "LIGHT") {
+		return (GTR::BaseEntity*) new GTR::LightEntity();
+	}
+		
     return NULL;
 }
 
@@ -172,3 +176,76 @@ void GTR::PrefabEntity::renderInMenu()
 #endif
 }
 
+/// LIGHT ENTITY =================
+void GTR::LightEntity::configure(cJSON* json) {
+	if (!cJSON_GetObjectItem(json, "light_type"))
+		assert("Light does not have a type");
+
+	std::string light_type_raw = cJSON_GetObjectItem(json, "light_type")->valuestring;
+
+	// Concrete parameters
+	if (light_type_raw == "SPOT") {
+		light_type = SPOT_LIGHT;
+
+		if (cJSON_GetObjectItem(json, "cone_angle"))
+		{
+			cone_angle = readJSONNumber(json, "cone_angle", 45.0f);
+		}
+
+		if (cJSON_GetObjectItem(json, "cone_exp"))
+		{
+			cone_exp_decay = readJSONNumber(json, "cone_exp", 60.0f);
+		}
+	} else if (light_type_raw == "DIRECTIONAL") {
+		light_type = DIRECTIONAL_LIGHT;
+
+		if (cJSON_GetObjectItem(json, "area_size"))
+		{
+			cone_exp_decay = readJSONNumber(json, "area_size", 1500.0f);
+		}
+	} else {
+		light_type = POINT_LIGHT;
+	}
+
+	// Shared parameters upon all lights
+
+	if (cJSON_GetObjectItem(json, "color"))
+	{
+		color = readJSONVector3(json, "color", Vector3(1, 1, 1));
+	}
+
+	if (cJSON_GetObjectItem(json, "intensity"))
+	{
+		intensity = readJSONNumber(json, "intensity", 1.0f);
+	}
+
+	if (cJSON_GetObjectItem(json, "max_distance"))
+	{
+		max_distance = readJSONNumber(json, "max_distance", 70.0f);
+	}
+}
+
+void GTR::LightEntity::renderInMenu() {
+#ifndef SKIP_IMGUI
+	std::string light_types[LIGHT_TYPE_COUNT] = { "Point light", "Directional light", "Spot light" };
+	ImGui::Text("Name: %s | %s", name.c_str(), light_types[light_type].c_str());
+	ImGui::Checkbox("Visible", &visible); // Edit 3 floats representing a color
+
+	ImGui::ColorEdit3("Light color", (float*) &color);
+	ImGui::DragFloat("Intensity", &intensity, 0.0f, 10.0f);
+	ImGui::DragFloat("Max. distance", &intensity, 0.0f, 10.0f);
+
+	switch (light_type) {
+	case SPOT_LIGHT:
+		ImGui::DragFloat("Cone angle", &intensity, 0.0f, 357.0f);
+		ImGui::DragFloat("Cone exp. decay", &intensity, 0.0f, 60.0f);
+		break;
+	case DIRECTIONAL_LIGHT:
+		ImGui::DragFloat("Area size", &area_size, 0.0f, 1000.0f);
+		break;
+	}
+
+	//Model edit
+	ImGuiMatrix44(model, "Model");
+#endif
+}

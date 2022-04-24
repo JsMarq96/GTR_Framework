@@ -75,6 +75,35 @@ namespace GTR {
 		BaseEntity* createEntity(std::string type);
 	};
 
+
+	// CUSTOM CLASSES =================
+	
+	enum eLightType : uint8_t {
+		POINT_LIGHT = 0,
+		DIRECTIONAL_LIGHT,
+		SPOT_LIGHT,
+		LIGHT_TYPE_COUNT
+	};
+	class LightEntity : BaseEntity {
+	public:
+		eLightType light_type = POINT_LIGHT;
+		Vector3 color = {1,1,1};
+		float intensity = 1.0f;
+		float max_distance = 10.0f;
+
+		// For Spotlight
+		float cone_angle = 0.0f;
+		float cone_exp_decay = 1.0f;
+		
+		// For Directional light
+		float area_size = 1.0f;
+
+		LightEntity() { entity_type = LIGHT; }
+
+		void configure(cJSON* json);
+		void renderInMenu();
+	};
+
 };
 
 #endif

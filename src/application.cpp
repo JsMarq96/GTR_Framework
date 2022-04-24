@@ -45,6 +45,7 @@ Application::Application(int window_width, int window_height, SDL_Window* window
 	elapsed_time = 0.0f;
 	mouse_locked = false;
 
+
 	//loads and compiles several shaders from one single file
     //change to "data/shader_atlas_osx.txt" if you are in XCODE
 #ifdef __APPLE__
