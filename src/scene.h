@@ -8,6 +8,7 @@
 //forward declaration
 class cJSON; 
 
+#include <iostream>
 
 //our namespace
 namespace GTR {
@@ -84,6 +85,7 @@ namespace GTR {
 		SPOT_LIGHT,
 		LIGHT_TYPE_COUNT
 	};
+
 	class LightEntity : BaseEntity {
 	public:
 		eLightType light_type = POINT_LIGHT;
@@ -102,6 +104,26 @@ namespace GTR {
 
 		void configure(cJSON* json);
 		void renderInMenu();
+
+		inline bool is_in_range(const vec3& position) {
+			return std::abs((model.getTranslation() - position).length()) < max_distance;
+		}
+
+		inline bool is_in_range(const BoundingBox& bbox, const vec3 &position) {
+			vec3 light_pos = model.getTranslation();
+			vec3 bbox_max = bbox.center + bbox.halfsize + position, bbox_min = bbox.center - bbox.halfsize + position;
+			if ((light_pos.x >= bbox_min.x && light_pos.x <= bbox_max.x) &&
+				(light_pos.y >= bbox_min.y && light_pos.y <= bbox_max.y) &&
+				(light_pos.z >= bbox_min.z && light_pos.z <= bbox_max.z)) {
+				return true;
+			}
+
+			return std::abs((light_pos - position).length()) < max_distance;
+		}
+
+		inline vec3 get_translation() {
+			return model.getTranslation();
+		}
 	};
 
 };

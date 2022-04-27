@@ -14,6 +14,21 @@ namespace GTR {
 		Material* material;
 		Camera* camera;
 		float camera_distance;
+
+		BoundingBox aabb;
+
+		LightEntity *lights_for_call[10];
+		vec3  light_positions[10];
+		vec3  light_color[10];
+		uint16_t light_count;
+
+		inline void add_light( LightEntity *light) {
+			if (light_count < 10) {
+				light_positions[light_count] = light->get_translation();
+				light_color[light_count] = light->color;
+				lights_for_call[light_count++] = light;
+			}
+		}
 	};
 
 	inline float Min(const float x, const float y) {
@@ -29,18 +44,17 @@ namespace GTR {
 	{
 		std::vector<sDrawCall> _opaque_objects;
 		std::vector<sDrawCall> _translucent_objects;
+		std::vector<LightEntity*> _scene_lights;
+
 	public:
 
 		//add here your functions
 		//...
-		inline void renderDrawCall(const sDrawCall& draw_call) {
-			renderMeshWithMaterial(draw_call.model, draw_call.mesh, draw_call.material, draw_call.camera);
-		}
+		void renderDrawCall(const sDrawCall& draw_call);
 
 		void add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node, Camera* camera);
 
-		void add_draw_instance(const Matrix44 model, Mesh* mesh, GTR::Material* material, Camera* camera, const float camera_distance);
-
+		void add_draw_instance(const Matrix44 model, Mesh* mesh, GTR::Material* material, Camera* camera, const float camera_distance, const BoundingBox &aabb);
 
 		// ===============================================
 		// ===============================================

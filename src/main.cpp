@@ -128,6 +128,7 @@ void mainLoop(SDL_Window* window)
 
 	TaskManager::background.startThread();
 
+
 	while (!app->must_exit)
 	{
 		//render frame

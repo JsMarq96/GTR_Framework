@@ -212,16 +212,16 @@ void GTR::LightEntity::configure(cJSON* json) {
 	if (cJSON_GetObjectItem(json, "color"))
 	{
 		color = readJSONVector3(json, "color", Vector3(1, 1, 1));
-	}
+ 	}
 
 	if (cJSON_GetObjectItem(json, "intensity"))
 	{
 		intensity = readJSONNumber(json, "intensity", 1.0f);
 	}
 
-	if (cJSON_GetObjectItem(json, "max_distance"))
+	if (cJSON_GetObjectItem(json, "max_dist"))
 	{
-		max_distance = readJSONNumber(json, "max_distance", 70.0f);
+		max_distance = readJSONNumber(json, "max_dist", 70.0f);
 	}
 }
 
@@ -232,16 +232,16 @@ void GTR::LightEntity::renderInMenu() {
 	ImGui::Checkbox("Visible", &visible); // Edit 3 floats representing a color
 
 	ImGui::ColorEdit3("Light color", (float*) &color);
-	ImGui::DragFloat("Intensity", &intensity, 0.0f, 10.0f);
-	ImGui::DragFloat("Max. distance", &intensity, 0.0f, 10.0f);
+	ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f);
+	ImGui::SliderFloat("Max. distance", &max_distance, 0.0f, 1000.0f);
 
 	switch (light_type) {
 	case SPOT_LIGHT:
-		ImGui::DragFloat("Cone angle", &intensity, 0.0f, 357.0f);
-		ImGui::DragFloat("Cone exp. decay", &intensity, 0.0f, 60.0f);
+		ImGui::SliderFloat("Cone angle", &intensity, 0.0f, 357.0f);
+		ImGui::SliderFloat("Cone exp. decay", &intensity, 0.0f, 60.0f);
 		break;
 	case DIRECTIONAL_LIGHT:
-		ImGui::DragFloat("Area size", &area_size, 0.0f, 1000.0f);
+		ImGui::SliderFloat("Area size", &area_size, 0.0f, 1000.0f);
 		break;
 	}
 
