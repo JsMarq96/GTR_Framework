@@ -91,10 +91,17 @@ uniform float u_time;
 uniform float u_alpha_cutoff;
 
 // Light data
+uniform vec3 u_ambient_light;
 const int MAX_LIGHT = 10;
 uniform vec3 u_light_pos[MAX_LIGHT];
 uniform vec3 u_light_color[MAX_LIGHT];
+uniform int u_light_type[MAX_LIGHT];
 uniform int u_num_lights;
+
+// Spot light uniforms
+uniform float u_light_cone_angle[MAX_LIGHT];
+uniform float u_light_cone_decay[MAX_LIGHT];
+uniform vec3 u_light_direction[MAX_LIGHT];
 
 out vec4 FragColor;
 
@@ -112,8 +119,20 @@ void main()
 	vec3 N = normalize(v_normal);
 	for(int i = 0; i < u_num_lights; i++) {
 		vec3 L = normalize(u_light_pos[i] - v_world_position);
+		vec3 D = normalize(u_light_direction[i]);
 		float n_dot_l = max(dot(L, N), 0.0);
-		light_component += (n_dot_l * u_light_color[i]);
+		float l_dot_d = dot(D, L);
+
+		if (u_light_type[i] == 0) { // Point light
+			light_component += (n_dot_l * u_light_color[i]);
+		} else if (u_light_type[i] == 1) { // Directional light
+			light_component += (n_dot_l * u_light_color[i]);
+		} else if (u_light_type[i] == 2) { // Spot light
+			if (l_dot_d >= u_light_cone_angle[i]) {
+				// If the fragment to light direction is inside the angle of the spotlight
+				light_component += (pow(l_dot_d, u_light_cone_decay[i]) * u_light_color[i]);
+			}
+		}
 	}
 
 	color.rgb *= light_component;

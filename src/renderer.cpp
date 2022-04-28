@@ -172,9 +172,16 @@ inline void Renderer::renderDrawCall(const sDrawCall& draw_call) {
 	shader->enable();
 
 	// Upload light data
+	// Common data of the lights
 	shader->setUniform3Array("u_light_pos", (float*) draw_call.light_positions, draw_call.light_count);
-	shader->setUniform3Array("u_light_color", (float*)draw_call.light_color, draw_call.light_count);
+	shader->setUniform3Array("u_light_color", (float*) draw_call.light_color, draw_call.light_count);
+	shader->setUniform1Array("u_light_type", (int*) draw_call.light_type, draw_call.light_count);
 	shader->setUniform("u_num_lights", draw_call.light_count);
+
+	// Spotlight data of the lights
+	shader->setUniform3Array("u_light_direction", (float*)draw_call.light_direction, draw_call.light_count);
+	shader->setUniform1Array("u_light_cone_angle", (float*)draw_call.light_cone_angle, draw_call.light_count);
+	shader->setUniform1Array("u_light_cone_decay", (float*)draw_call.light_cone_decay, draw_call.light_count);
 	
 	//upload uniforms
 	shader->setUniform("u_viewprojection", draw_call.camera->viewprojection_matrix);

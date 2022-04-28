@@ -79,7 +79,7 @@ namespace GTR {
 
 	// CUSTOM CLASSES =================
 	
-	enum eLightType : uint8_t {
+	enum eLightType : int {
 		POINT_LIGHT = 0,
 		DIRECTIONAL_LIGHT,
 		SPOT_LIGHT,
@@ -108,21 +108,26 @@ namespace GTR {
 		inline bool is_in_range(const vec3& position) {
 			return std::abs((model.getTranslation() - position).length()) < max_distance;
 		}
-
-		inline bool is_in_range(const BoundingBox& bbox, const vec3 &position) {
+		// Check if the light inside the bounding box, or the distance to the center
+		// TODO: check distance to the Bounding box
+		inline bool is_in_range(const BoundingBox& bbox, const vec3 &bbox_position) {
 			vec3 light_pos = model.getTranslation();
-			vec3 bbox_max = bbox.center + bbox.halfsize + position, bbox_min = bbox.center - bbox.halfsize + position;
+			vec3 bbox_max = bbox.center + bbox.halfsize + bbox_position, bbox_min = bbox.center - bbox.halfsize + bbox_position;
 			if ((light_pos.x >= bbox_min.x && light_pos.x <= bbox_max.x) &&
 				(light_pos.y >= bbox_min.y && light_pos.y <= bbox_max.y) &&
 				(light_pos.z >= bbox_min.z && light_pos.z <= bbox_max.z)) {
 				return true;
 			}
 
-			return std::abs((light_pos - position).length()) < max_distance;
+			return std::abs((light_pos - bbox_position).length()) < max_distance;
 		}
 
 		inline vec3 get_translation() {
 			return model.getTranslation();
+		}
+
+		inline Matrix44& get_model() {
+			return model;
 		}
 	};
 

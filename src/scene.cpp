@@ -237,8 +237,8 @@ void GTR::LightEntity::renderInMenu() {
 
 	switch (light_type) {
 	case SPOT_LIGHT:
-		ImGui::SliderFloat("Cone angle", &intensity, 0.0f, 357.0f);
-		ImGui::SliderFloat("Cone exp. decay", &intensity, 0.0f, 60.0f);
+		ImGui::SliderFloat("Cone angle", &cone_angle, 0.0f, 357.0f);
+		ImGui::SliderFloat("Cone exp. decay", &cone_exp_decay, 0.0f, 60.0f);
 		break;
 	case DIRECTIONAL_LIGHT:
 		ImGui::SliderFloat("Area size", &area_size, 0.0f, 1000.0f);
