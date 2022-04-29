@@ -1,6 +1,7 @@
 #pragma once
 #include "prefab.h"
 #include "fbo.h"
+#include "application.h"
 #include <algorithm>
 
 //forward declarations
@@ -85,9 +86,11 @@ namespace GTR {
 	};
 
 	class ShadowRenderer {
-		FBO* shadowmap;
+		
 		std::vector<sShadowDrawCall> draw_call_stack;
 	public:
+		FBO* shadowmap;
+
 		void init();
 		void clean();
 

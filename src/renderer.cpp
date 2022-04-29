@@ -100,6 +100,14 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	_opaque_objects.clear();
 	_translucent_objects.clear();
 	_scene_lights.clear();
+
+	// Show the shadowmap
+	glViewport(0, 0, 256, 256);
+	Shader* shad = Shader::getDefaultShader("depth");
+	shad->enable();
+	shad->setUniform("u_camera_nearfar", vec2(0.01, 70.0f));
+	shadowmap_renderer.shadowmap->depth_texture->toViewport(shad);
+	glViewport(0, 0, Application::instance->window_width, Application::instance->window_height);
 }
 
 //renders all the prefab
@@ -385,23 +393,32 @@ void GTR::ShadowRenderer::render_light(const sShadowDrawCall& draw_call) {
 	//define locals to simplify coding
 	Shader* shader = Shader::Get("flat");
 
-	Matrix44 view_projection;
+	Matrix44 view_matrix;
+
+	Matrix44& light_model = draw_call.light->get_model();
+
+	view_matrix.lookAt(light_model.getTranslation(), light_model * vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 1.0f, 0.0f));
 
 	// Set the type of the view-projection
 	if (draw_call.light->light_type == SPOT_LIGHT) {
-		view_projection.perspective(draw_call.light->cone_angle * 2.0f,
-			1.0f,
-			0.01f,
+		Matrix44 projection;
+		projection.perspective(draw_call.light->cone_angle * 2.0f,
+			1.0f, 
+			0.01f, 
 			draw_call.light->max_distance);
+		 view_matrix = view_matrix * projection;
 	}
-
+	else {
+		std::cout << " p" << std::endl;
+		return;
+	}
 	shader->enable();
 
 	assert(glGetError() == GL_NO_ERROR);
 	glEnable(GL_CULL_FACE);
 	for (uint16_t i = 0; i < draw_call.obj_cout; i++) {
 		//upload uniforms
-		shader->setUniform("u_viewprojection", view_projection);
+		shader->setUniform("u_viewprojection", view_matrix);
 		shader->setUniform("u_model", draw_call.models[i]);
 
 		//shader->setUniform("u_alpha_cutoff", draw_call.material->alpha_mode == GTR::eAlphaMode::MASK ? draw_call.material->alpha_cutoff : 0);
