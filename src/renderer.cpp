@@ -102,12 +102,16 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	_scene_lights.clear();
 
 	// Show the shadowmap
-	glViewport(0, 0, 256, 256);
-	Shader* shad = Shader::getDefaultShader("depth");
-	shad->enable();
-	shad->setUniform("u_camera_nearfar", vec2(0.01, 70.0f));
-	shadowmap_renderer.shadowmap->depth_texture->toViewport(shad);
-	glViewport(0, 0, Application::instance->window_width, Application::instance->window_height);
+	if (show_shadowmap) {
+		glViewport(0, 0, 256, 256);
+		Shader* shad = Shader::getDefaultShader("depth");
+		shad->enable();
+		shad->setUniform("u_camera_nearfar", vec2(0.01, 70.0f));
+		shadowmap_renderer.shadowmap->depth_texture->toViewport(shad);
+		glViewport(0, 0, Application::instance->window_width, Application::instance->window_height);
+	}
+
+	shadowmap_renderer.clear_shadowmap();
 }
 
 //renders all the prefab
@@ -213,6 +217,11 @@ inline void Renderer::renderDrawCall(const sDrawCall& draw_call) {
 	shader->setUniform("u_color", draw_call.material->color);
 	if (texture)
 		shader->setUniform("u_texture", texture, 0);
+
+	// Set the shadowmap
+	shader->setUniform("u_shadow_map", shadowmap_renderer.get_shadowmap(), 8);
+	shader->setUniform("u_shadow_vp", shadowmap_renderer.draw_call_stack[0].light_view_projection);
+	shader->setUniform("u_shadow_bias", shadowmap_renderer.shadow_bias);
 
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", draw_call.material->alpha_mode == GTR::eAlphaMode::MASK ? draw_call.material->alpha_cutoff : 0);
@@ -389,7 +398,7 @@ void GTR::ShadowRenderer::clean() {
 	shadowmap->freeTextures();
 }
 
-void GTR::ShadowRenderer::render_light(const sShadowDrawCall& draw_call) {
+void GTR::ShadowRenderer::render_light(sShadowDrawCall& draw_call) {
 	//define locals to simplify coding
 	Shader* shader = Shader::Get("flat");
 
@@ -402,16 +411,15 @@ void GTR::ShadowRenderer::render_light(const sShadowDrawCall& draw_call) {
 	// Set the type of the view-projection
 	if (draw_call.light->light_type == SPOT_LIGHT) {
 		Matrix44 projection;
-		projection.perspective(draw_call.light->cone_angle * 2.0f,
+		projection.perspective(draw_call.light->cone_angle,
 			1.0f, 
-			0.01f, 
+			0.1f, 
 			draw_call.light->max_distance);
 		 view_matrix = view_matrix * projection;
 	}
-	else {
-		std::cout << " p" << std::endl;
-		return;
-	}
+	
+	draw_call.light_view_projection = view_matrix;
+
 	shader->enable();
 
 	assert(glGetError() == GL_NO_ERROR);
@@ -456,6 +464,4 @@ void GTR::ShadowRenderer::render_scene_shadows() {
 
 	// Re-enable color writing
 	glColorMask(true, true, true, true);
-
-	draw_call_stack.clear();
 }

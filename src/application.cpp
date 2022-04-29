@@ -257,6 +257,11 @@ void Application::renderDebugGUI(void)
 		ImGui::TreePop();
 	}
 
+	if (ImGui::TreeNode("Render settings")) {
+		renderer->renderInMenu();
+		ImGui::TreePop();
+	}
+
 	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.75f, 0.75f, 1.0f));
 
 	//example to show prefab info: first param must be unique!

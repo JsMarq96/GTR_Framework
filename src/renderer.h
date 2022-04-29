@@ -75,6 +75,8 @@ namespace GTR {
 	struct sShadowDrawCall {
 		LightEntity* light;
 
+		Matrix44 light_view_projection;
+
 		uint16_t obj_cout;
 		std::vector<Matrix44> models;
 		std::vector<Mesh*> meshes;
@@ -86,17 +88,26 @@ namespace GTR {
 	};
 
 	class ShadowRenderer {
-		
-		std::vector<sShadowDrawCall> draw_call_stack;
 	public:
+		std::vector<sShadowDrawCall> draw_call_stack;
 		FBO* shadowmap;
+
+		float shadow_bias = 0.0001f;
 
 		void init();
 		void clean();
 
-		void render_light(const sShadowDrawCall& draw_call);
+		inline void clear_shadowmap() {
+			draw_call_stack.clear();
+		}
+
+		void render_light(sShadowDrawCall& draw_call);
 
 		void render_scene_shadows();
+
+		inline Texture* get_shadowmap() const {
+			return shadowmap->depth_texture;
+		}
 
 		inline uint16_t add_light(LightEntity* light) {
 			draw_call_stack.push_back({ light });
@@ -110,6 +121,13 @@ namespace GTR {
 			draw_call->models.push_back(inst_model);
 			draw_call->meshes.push_back(inst_mesh);
 			draw_call->obj_cout++;
+		}
+
+		inline void renderInMenu() {
+#ifndef SKIP_IMGUI
+			ImGui::Text("ShadowMap settings");
+			ImGui::SliderFloat("Shadow bias", &shadow_bias, 0.00001f, 0.01f);
+#endif
 		}
 	};
 
@@ -127,6 +145,8 @@ namespace GTR {
 
 		ShadowRenderer shadowmap_renderer;
 
+		bool show_shadowmap = false;
+
 	public:
 
 		//add here your functions
@@ -137,6 +157,14 @@ namespace GTR {
 		void add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node, Camera* camera);
 
 		void add_draw_instance(const Matrix44 model, Mesh* mesh, GTR::Material* material, Camera* camera, const float camera_distance, const BoundingBox &aabb);
+
+
+		inline void renderInMenu() {
+#ifndef SKIP_IMGUI
+			shadowmap_renderer.renderInMenu();
+			ImGui::Checkbox("Show shadowmap", &show_shadowmap);
+#endif
+		}
 
 		// ===============================================
 		// ===============================================
