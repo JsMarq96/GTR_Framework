@@ -57,7 +57,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	for (uint16_t light_i = 0; light_i < _scene_lights.size(); light_i++) {
 		LightEntity *curr_light =  _scene_lights[light_i];
 		uint16_t light_id = 0;
-		if (curr_light->light_type == SPOT_LIGHT) {
+		if (curr_light->light_type == DIRECTIONAL_LIGHT) {
 			light_id = shadowmap_renderer.add_light(curr_light);
 		}
 		
@@ -66,7 +66,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 			if (curr_light->is_in_range(_opaque_objects[i].aabb)) {
 				_opaque_objects[i].add_light(curr_light);
 
-				if (curr_light->light_type == SPOT_LIGHT) {
+				if (curr_light->light_type == DIRECTIONAL_LIGHT) {
 					shadowmap_renderer.add_instance_to_light(light_id, _opaque_objects[i].mesh, _opaque_objects[i].model);
 				}
 			}
@@ -106,7 +106,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 		glViewport(0, 0, 256, 256);
 		Shader* shad = Shader::getDefaultShader("depth");
 		shad->enable();
-		shad->setUniform("u_camera_nearfar", vec2(0.01, 70.0f));
+		shad->setUniform("u_camera_nearfar", vec2(0.1, 10000.0f));
 		shadowmap_renderer.shadowmap->depth_texture->toViewport(shad);
 		glViewport(0, 0, Application::instance->window_width, Application::instance->window_height);
 	}
@@ -405,8 +405,9 @@ void GTR::ShadowRenderer::render_light(sShadowDrawCall& draw_call) {
 	Matrix44 view_matrix;
 
 	Matrix44& light_model = draw_call.light->get_model();
+	vec3 light_pos = light_model.getTranslation();
 
-	view_matrix.lookAt(light_model.getTranslation(), light_model * vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 1.0f, 0.0f));
+	view_matrix.lookAt(light_pos, light_model * vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 1.0f, 0.0f));
 
 	// Set the type of the view-projection
 	if (draw_call.light->light_type == SPOT_LIGHT) {
@@ -416,6 +417,16 @@ void GTR::ShadowRenderer::render_light(sShadowDrawCall& draw_call) {
 			0.1f, 
 			draw_call.light->max_distance);
 		 view_matrix = view_matrix * projection;
+	} else if (draw_call.light->light_type == DIRECTIONAL_LIGHT) {
+		Matrix44 projection;
+		float half_area = draw_call.light->area_size / 2.0f;
+		projection.ortho(-half_area, 
+			half_area, 
+			half_area, 
+			-half_area, 
+			0.1f, 
+			draw_call.light->max_distance);
+		view_matrix = view_matrix * projection;
 	}
 	
 	draw_call.light_view_projection = view_matrix;
