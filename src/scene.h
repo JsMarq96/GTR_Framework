@@ -4,11 +4,13 @@
 #include "framework.h"
 #include "camera.h"
 #include <string>
+#include <algorithm>
 
 //forward declaration
 class cJSON; 
 
 #include <iostream>
+
 
 //our namespace
 namespace GTR {
@@ -86,6 +88,13 @@ namespace GTR {
 		LIGHT_TYPE_COUNT
 	};
 
+	inline float min_f(const float x, const float y) {
+		return (x > y) ? y : x;
+	}
+	inline float max_f(const float x, const float y) {
+		return (x < y) ? y : x;
+	}
+	
 	class LightEntity : BaseEntity {
 	public:
 		eLightType light_type = POINT_LIGHT;
@@ -110,16 +119,20 @@ namespace GTR {
 		}
 		// Check if the light inside the bounding box, or the distance to the center
 		// TODO: check distance to the Bounding box
-		inline bool is_in_range(const BoundingBox& bbox, const vec3 &bbox_position) {
+		inline bool is_in_range(const BoundingBox& bbox) {
 			vec3 light_pos = model.getTranslation();
-			vec3 bbox_max = bbox.center + bbox.halfsize + bbox_position, bbox_min = bbox.center - bbox.halfsize + bbox_position;
-			if ((light_pos.x >= bbox_min.x && light_pos.x <= bbox_max.x) &&
-				(light_pos.y >= bbox_min.y && light_pos.y <= bbox_max.y) &&
-				(light_pos.z >= bbox_min.z && light_pos.z <= bbox_max.z)) {
-				return true;
-			}
 
-			return std::abs((light_pos - bbox_position).length()) < max_distance;
+			vec3 aabb_point = light_pos;
+			aabb_point.x = max_f(aabb_point.x, bbox.center.x - bbox.halfsize.x);
+			aabb_point.x = min_f(aabb_point.x, bbox.center.x + bbox.halfsize.x);
+
+			aabb_point.y = max_f(aabb_point.y, bbox.center.y - bbox.halfsize.y);
+			aabb_point.y = min_f(aabb_point.y, bbox.center.y + bbox.halfsize.y);
+
+			aabb_point.z = max_f(aabb_point.z, bbox.center.z - bbox.halfsize.z);
+			aabb_point.z = min_f(aabb_point.z, bbox.center.z + bbox.halfsize.z);
+
+			return std::abs((light_pos - aabb_point).length()) < max_distance;
 		}
 
 		inline vec3 get_translation() {

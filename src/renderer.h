@@ -1,6 +1,6 @@
 #pragma once
 #include "prefab.h"
-
+#include "fbo.h"
 #include <algorithm>
 
 //forward declarations
@@ -64,9 +64,56 @@ namespace GTR {
 		return (x < y) ? x : y;
 	}
 
+	// ================
+	//  SHADOW RENDERER
+	// ================
+	// NOTA: la sombra de luzes rollo sol (direcional no?) es relativa a la camara
+	//       
+#define SHADOW_MAP_RES 1024
+
+	struct sShadowDrawCall {
+		LightEntity* light;
+
+		uint16_t obj_cout;
+		std::vector<Matrix44> models;
+		std::vector<Mesh*> meshes;
+
+		inline void clear() {
+			models.clear();
+			meshes.clear();
+		}
+	};
+
+	class ShadowRenderer {
+		FBO* shadowmap;
+		std::vector<sShadowDrawCall> draw_call_stack;
+	public:
+		void init();
+		void clean();
+
+		void render_light(const sShadowDrawCall& draw_call);
+
+		void render_scene_shadows();
+
+		inline uint16_t add_light(LightEntity* light) {
+			draw_call_stack.push_back({ light });
+
+			return draw_call_stack.size() - 1;
+		}
+
+		inline void add_instance_to_light(const uint16_t light, Mesh* inst_mesh, Matrix44& inst_model) {
+			sShadowDrawCall* draw_call = &draw_call_stack[light];
+
+			draw_call->models.push_back(inst_model);
+			draw_call->meshes.push_back(inst_mesh);
+			draw_call->obj_cout++;
+		}
+	};
+
+
 	class Prefab;
 	class Material;
-	
+
 	// This class is in charge of rendering anything in our system.
 	// Separating the render from anything else makes the code cleaner
 	class Renderer
@@ -75,10 +122,13 @@ namespace GTR {
 		std::vector<sDrawCall> _translucent_objects;
 		std::vector<LightEntity*> _scene_lights;
 
+		ShadowRenderer shadowmap_renderer;
+
 	public:
 
 		//add here your functions
 		//...
+		void init();
 		void renderDrawCall(const sDrawCall& draw_call);
 
 		void add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node, Camera* camera);
@@ -102,5 +152,4 @@ namespace GTR {
 	};
 
 	Texture* CubemapFromHDRE(const char* filename);
-
 };

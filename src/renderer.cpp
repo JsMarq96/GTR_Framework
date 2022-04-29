@@ -1,5 +1,6 @@
 #include "renderer.h"
 
+#include "fbo.h"
 #include "camera.h"
 #include "shader.h"
 #include "mesh.h"
@@ -55,21 +56,32 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	// Iterate all the lights on the scene
 	for (uint16_t light_i = 0; light_i < _scene_lights.size(); light_i++) {
 		LightEntity *curr_light =  _scene_lights[light_i];
+		uint16_t light_id = 0;
+		if (curr_light->light_type == SPOT_LIGHT) {
+			light_id = shadowmap_renderer.add_light(curr_light);
+		}
 		
 		// Check if the opaque object is in range of the light
 		for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
-			if (curr_light->is_in_range(_opaque_objects[i].aabb, _opaque_objects[i].model.getTranslation())) {
+			if (curr_light->is_in_range(_opaque_objects[i].aabb)) {
 				_opaque_objects[i].add_light(curr_light);
+
+				if (curr_light->light_type == SPOT_LIGHT) {
+					shadowmap_renderer.add_instance_to_light(light_id, _opaque_objects[i].mesh, _opaque_objects[i].model);
+				}
 			}
 		}
 
 		// Check if the translucent object is in range of the light
 		for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
-			if (curr_light->is_in_range(_translucent_objects[i].aabb, _translucent_objects[i].model.getTranslation())) {
+			if (curr_light->is_in_range(_translucent_objects[i].aabb)) {
 				_translucent_objects[i].add_light(curr_light);
 			}
 		}
 	}
+
+	// Render shadows
+	shadowmap_renderer.render_scene_shadows();
 
 	// Order the opaque & translucent
 	std::sort(_opaque_objects.begin(), _opaque_objects.end(), opaque_draw_call_distance_comp);
@@ -310,6 +322,10 @@ Texture* GTR::CubemapFromHDRE(const char* filename)
 //   CUSTOM METHODS
 // =================================
 
+void Renderer::init() {
+	shadowmap_renderer.init();
+}
+
 void Renderer::add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node, Camera* camera) {
 	if (!node->visible)
 		return;
@@ -348,4 +364,81 @@ void Renderer::add_draw_instance(const Matrix44 model, Mesh* mesh, GTR::Material
 	else {
 		_opaque_objects.push_back(sDrawCall{ model, mesh, material, camera,  camera_distance, aabb });
 	}
+}
+
+
+
+// =============================
+//  SHADOW RENDERER
+// =============================
+
+
+void GTR::ShadowRenderer::init() {
+	shadowmap = new FBO();
+	shadowmap->setDepthOnly(SHADOW_MAP_RES, SHADOW_MAP_RES);
+}
+void GTR::ShadowRenderer::clean() {
+	shadowmap->freeTextures();
+}
+
+void GTR::ShadowRenderer::render_light(const sShadowDrawCall& draw_call) {
+	//define locals to simplify coding
+	Shader* shader = Shader::Get("flat");
+
+	Matrix44 view_projection;
+
+	// Set the type of the view-projection
+	if (draw_call.light->light_type == SPOT_LIGHT) {
+		view_projection.perspective(draw_call.light->cone_angle * 2.0f,
+			1.0f,
+			0.01f,
+			draw_call.light->max_distance);
+	}
+
+	shader->enable();
+
+	assert(glGetError() == GL_NO_ERROR);
+	glEnable(GL_CULL_FACE);
+	for (uint16_t i = 0; i < draw_call.obj_cout; i++) {
+		//upload uniforms
+		shader->setUniform("u_viewprojection", view_projection);
+		shader->setUniform("u_model", draw_call.models[i]);
+
+		//shader->setUniform("u_alpha_cutoff", draw_call.material->alpha_mode == GTR::eAlphaMode::MASK ? draw_call.material->alpha_cutoff : 0);
+
+		//do the draw call that renders the mesh into the screen
+		draw_call.meshes[i]->render(GL_TRIANGLES);
+	}
+
+	assert(glGetError() == GL_NO_ERROR);
+
+	//disable shader
+	shader->disable();
+
+	//set the render state as it was before to avoid problems with future renders
+	glDisable(GL_CULL_FACE);
+	glDisable(GL_BLEND);
+}
+
+void GTR::ShadowRenderer::render_scene_shadows() {
+	// Disable color writing
+	glColorMask(false, false, false, false);
+
+	// Enable write to FBO
+	shadowmap->bind();
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	for (uint16_t i = 0; i < draw_call_stack.size(); i++) {
+		render_light(draw_call_stack[i]);
+		draw_call_stack[i].clear();
+	}
+
+	// Reenable write to framebuffer
+	shadowmap->unbind();
+
+	// Re-enable color writing
+	glColorMask(true, true, true, true);
+
+	draw_call_stack.clear();
 }

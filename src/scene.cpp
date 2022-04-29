@@ -3,6 +3,7 @@
 
 #include "prefab.h"
 #include "extra/cJSON.h"
+#include <algorithm>
 
 GTR::Scene* GTR::Scene::instance = NULL;
 
@@ -224,6 +225,8 @@ void GTR::LightEntity::configure(cJSON* json) {
 		max_distance = readJSONNumber(json, "max_dist", 70.0f);
 	}
 }
+
+
 
 void GTR::LightEntity::renderInMenu() {
 #ifndef SKIP_IMGUI
