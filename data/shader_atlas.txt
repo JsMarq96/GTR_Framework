@@ -91,18 +91,18 @@ uniform sampler2D u_texture;
 uniform float u_time;
 uniform float u_alpha_cutoff;
 
-// Shadows uniforms
-uniform sampler2D u_shadow_map;
-uniform mat4 u_shadow_vp;
-uniform float u_shadow_bias;
-
 // Light data
 uniform vec3 u_ambient_light;
-const int MAX_LIGHT = 10;
+const int MAX_LIGHT = 7;
 uniform vec3 u_light_pos[MAX_LIGHT];
 uniform vec3 u_light_color[MAX_LIGHT];
 uniform int u_light_type[MAX_LIGHT];
 uniform int u_num_lights;
+
+// Shadows uniforms
+uniform sampler2D u_shadow_map;
+uniform mat4 u_shadow_vp[MAX_LIGHT];
+uniform float u_shadow_bias;
 
 // Spot light uniforms
 uniform float u_light_cone_angle[MAX_LIGHT];
@@ -111,13 +111,26 @@ uniform vec3 u_light_direction[MAX_LIGHT];
 
 out vec4 FragColor;
 
-float get_shadow_component() {
-	vec4 frag_shadow_pos = u_shadow_vp * vec4(v_world_position, 1.0);
+const vec3 TILES_SIZES[7] = vec3[](
+	vec3(0.0, 0.5, 0.5), // Tile 0
+	vec3(0.0, 0.0, 0.5), // 1
+	vec3(0.5, 0.0, 0.25), // 2
+	vec3(0.5, 0.25, 0.25), // 3
+	vec3(0.75, 0.0, 0.25), // 4
+	vec3(0.75, 0.25, 0.25), // 5
+	vec3(0.75, 0.5, 0.25) // 6
+);
+
+float get_shadow_component(int light_id) {
+	vec4 frag_shadow_pos = u_shadow_vp[light_id] * vec4(v_world_position, 1.0);
+	//vec4 frag_shadow_pos =  vec4(v_world_position, 1.0);
 	vec2 frag_shadow_uv = ((frag_shadow_pos.xy / frag_shadow_pos.w) * 0.5) + vec2(0.5); // ??
 
 	if (frag_shadow_uv.x < 0.0 && frag_shadow_uv.x > 1.0 && frag_shadow_uv.y < 0.0 && frag_shadow_uv.y > 1.0) {
 		return 0.0;
 	}
+
+	frag_shadow_uv.xy = TILES_SIZES[light_id].xy + (frag_shadow_uv.xy * TILES_SIZES[light_id].z);
 
 	float frag_depth = (((frag_shadow_pos.z - u_shadow_bias) / frag_shadow_pos.w) * 0.5) + 0.5;
 	float shadow_map_depth = texture(u_shadow_map, frag_shadow_uv).x;
@@ -143,6 +156,8 @@ void main()
 
 	vec3 N = normalize(v_normal);
 
+	bool in_shadow = false;
+
 	for(int i = 0; i < MAX_LIGHT; i++) {
 		if (i >= u_num_lights) {
 			continue;
@@ -167,11 +182,20 @@ void main()
 		} else { // For directional & spotlight
 			light_component += (n_dot_l * u_light_color[i]);
 		}
+
+		float shadow_compoment = get_shadow_component(i);
+
+		if (shadow_compoment == 0) {
+			in_shadow = true;
+			break;
+		}
 	}
 
-	float shadow_compoment = get_shadow_component();
+	color.rgb = color.rgb * (light_component);
 
-	color.rgb = color.rgb * (u_ambient_light + (shadow_compoment) * light_component);
+	if (in_shadow) {
+		color.rgb = vec3(0.0);
+	}
 
 	FragColor = color;
 }

@@ -15,8 +15,6 @@ class cJSON;
 //our namespace
 namespace GTR {
 
-
-
 	enum eEntityType {
 		NONE = 0,
 		PREFAB = 1,
@@ -108,6 +106,9 @@ namespace GTR {
 		
 		// For Directional light
 		float area_size = 1.0f;
+
+		// Shadowmap data
+		vec3 shadomap_tile = vec3();
 
 		LightEntity() { entity_type = LIGHT; }
 

@@ -68,6 +68,6 @@
 #endif
 
 
-
+#define MAX_LIGHT_NUM 10
 
 #endif
