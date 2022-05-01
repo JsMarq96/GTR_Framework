@@ -32,6 +32,8 @@ public:
 	void bind();
 	void unbind();
 
+	void setViewportAsUVs(const float x, const float y, const float width, const float height);
+
 	//to render momentarily to a single buffer
 	void enableSingleBuffer(int num);
 	void enableAllBuffers(); //back to all

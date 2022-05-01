@@ -88,6 +88,16 @@ namespace GTR {
 	};
 
 	class ShadowRenderer {
+		const vec3 TILES_SIZES[7] = {
+			vec3(0.0, 0.5, 0.5), // Tile 0
+			vec3(0.0, 0.0, 0.5), // 1
+			vec3(0.5, 0.0, 0.25), // 2
+			vec3(0.5, 0.25, 0.25), // 3
+			vec3(0.75, 0.0, 0.25), // 4
+			vec3(0.75, 0.25, 0.25), // 5
+			vec3(0.75, 0.5, 0.25) // 6
+		};
+
 	public:
 		std::vector<sShadowDrawCall> draw_call_stack;
 		FBO* shadowmap;

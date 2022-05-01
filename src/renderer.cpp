@@ -57,7 +57,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	for (uint16_t light_i = 0; light_i < _scene_lights.size(); light_i++) {
 		LightEntity *curr_light =  _scene_lights[light_i];
 		uint16_t light_id = 0;
-		if (curr_light->light_type == DIRECTIONAL_LIGHT) {
+		if (curr_light->light_type == DIRECTIONAL_LIGHT || curr_light->light_type == SPOT_LIGHT) {
 			light_id = shadowmap_renderer.add_light(curr_light);
 		}
 		
@@ -66,7 +66,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 			if (curr_light->is_in_range(_opaque_objects[i].aabb)) {
 				_opaque_objects[i].add_light(curr_light);
 
-				if (curr_light->light_type == DIRECTIONAL_LIGHT) {
+				if (curr_light->light_type == DIRECTIONAL_LIGHT || curr_light->light_type == SPOT_LIGHT) {
 					shadowmap_renderer.add_instance_to_light(light_id, _opaque_objects[i].mesh, _opaque_objects[i].model);
 				}
 			}
@@ -219,9 +219,9 @@ inline void Renderer::renderDrawCall(const sDrawCall& draw_call) {
 		shader->setUniform("u_texture", texture, 0);
 
 	// Set the shadowmap
-	shader->setUniform("u_shadow_map", shadowmap_renderer.get_shadowmap(), 8);
-	shader->setUniform("u_shadow_vp", shadowmap_renderer.draw_call_stack[0].light_view_projection);
-	shader->setUniform("u_shadow_bias", shadowmap_renderer.shadow_bias);
+	//shader->setUniform("u_shadow_map", shadowmap_renderer.get_shadowmap(), 8);
+	//shader->setUniform("u_shadow_vp", shadowmap_renderer.draw_call_stack[0].light_view_projection);
+	//shader->setUniform("u_shadow_bias", shadowmap_renderer.shadow_bias);
 
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", draw_call.material->alpha_mode == GTR::eAlphaMode::MASK ? draw_call.material->alpha_cutoff : 0);
@@ -435,6 +435,7 @@ void GTR::ShadowRenderer::render_light(sShadowDrawCall& draw_call) {
 
 	assert(glGetError() == GL_NO_ERROR);
 	glEnable(GL_CULL_FACE);
+
 	for (uint16_t i = 0; i < draw_call.obj_cout; i++) {
 		//upload uniforms
 		shader->setUniform("u_viewprojection", view_matrix);
@@ -447,6 +448,8 @@ void GTR::ShadowRenderer::render_light(sShadowDrawCall& draw_call) {
 	}
 
 	assert(glGetError() == GL_NO_ERROR);
+
+	glViewport(0, 0, Application::instance->window_width, Application::instance->window_height);
 
 	//disable shader
 	shader->disable();
@@ -466,6 +469,8 @@ void GTR::ShadowRenderer::render_scene_shadows() {
 	glClear(GL_DEPTH_BUFFER_BIT);
 
 	for (uint16_t i = 0; i < draw_call_stack.size(); i++) {
+		// For the shadomap atlas
+		shadowmap->setViewportAsUVs(TILES_SIZES[i].x, TILES_SIZES[i].y , TILES_SIZES[i].z, TILES_SIZES[i].z);
 		render_light(draw_call_stack[i]);
 		draw_call_stack[i].clear();
 	}
