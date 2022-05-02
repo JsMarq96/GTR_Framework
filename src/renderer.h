@@ -78,6 +78,7 @@ namespace GTR {
 
 		ShadowRenderer shadowmap_renderer;
 
+		bool use_single_pass = true;
 		bool show_shadowmap = false;
 
 	public:
@@ -85,7 +86,8 @@ namespace GTR {
 		//add here your functions
 		//...
 		void init();
-		void renderDrawCall(const sDrawCall& draw_call, const Scene *scene);
+		void singleRenderDrawCall(const sDrawCall& draw_call, const Scene *scene);
+		void multiRenderDrawCall(const sDrawCall& draw_call, const Scene* scene);
 
 		void add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node, Camera* camera);
 
@@ -96,6 +98,7 @@ namespace GTR {
 #ifndef SKIP_IMGUI
 			shadowmap_renderer.renderInMenu();
 			ImGui::Checkbox("Show shadowmap", &show_shadowmap);
+			ImGui::Checkbox("Use singlepass", &use_single_pass);
 #endif
 		}
 
