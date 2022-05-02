@@ -65,8 +65,8 @@ namespace GTR {
 
 		inline uint16_t add_light(LightEntity* light) {
 			draw_call_stack.push_back({ light });
-
-			return draw_call_stack.size() - 1;
+			light->light_id = draw_call_stack.size() - 1;
+			return light->light_id;
 		}
 
 		inline void add_instance_to_light(const uint16_t light, Mesh* inst_mesh, Matrix44& inst_model) {

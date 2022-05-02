@@ -109,6 +109,7 @@ namespace GTR {
 
 		// Shadowmap data
 		vec3 shadomap_tile = vec3();
+		uint32_t light_id = 0;
 
 		LightEntity() { entity_type = LIGHT; }
 
@@ -134,6 +135,27 @@ namespace GTR {
 			aabb_point.z = min_f(aabb_point.z, bbox.center.z + bbox.halfsize.z);
 
 			return std::abs((light_pos - aabb_point).length()) < max_distance;
+		}
+
+		inline bool is_in_light_frustum(const BoundingBox& world_bbox) {
+
+			Camera light_cam;
+			light_cam.lookAt(model.getTranslation(), model * vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 1.0f, 0.0f));
+
+			if (light_type == POINT_LIGHT) {
+				return false;
+			}
+			else if (light_type == SPOT_LIGHT) {
+				light_cam.setPerspective(cone_angle, 1.0f, 0.1f, max_distance);
+			}
+			else {
+				float half_area = area_size / 2.0f;
+				light_cam.setOrthographic(-half_area, half_area, half_area, -half_area, 0.1f, max_distance);
+			}
+
+			
+			//if bounding box is inside the light frustum then the object is probably visible
+			return light_cam.testBoxInFrustum(world_bbox.center, world_bbox.halfsize);
 		}
 
 		inline vec3 get_translation() {

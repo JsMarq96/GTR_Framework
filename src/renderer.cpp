@@ -31,6 +31,8 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	checkGLErrors();
 
+	std::vector<PrefabEntity*> scene_prefabs;
+
 	//render entities
 	for (int i = 0; i < scene->entities.size(); ++i)
 	{
@@ -43,32 +45,36 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 		{
 			PrefabEntity* pent = (GTR::PrefabEntity*)ent;
 			if (pent->prefab) {
-				add_to_render_queue(ent->model, &(pent->prefab->root), camera);
+				scene_prefabs.push_back(pent);
 			}
 			else {
 				assert("PREFAB IS NULL");
 			}
 		} else if (ent->entity_type == LIGHT) {
-			_scene_lights.push_back((LightEntity*)ent);
+			LightEntity* curr_light = (LightEntity*)ent;
+			_scene_lights.push_back(curr_light);
+			uint16_t light_id = 0;
+			if (curr_light->light_type == DIRECTIONAL_LIGHT || curr_light->light_type == SPOT_LIGHT) {
+				light_id = shadowmap_renderer.add_light(curr_light);
+			}
 		}
 	}
+
+	for (uint16_t i = 0; i < scene_prefabs.size(); i++) {
+		PrefabEntity* pent = scene_prefabs[i];
+		add_to_render_queue(pent->model, &(pent->prefab->root), camera);
+	}
+
+	scene_prefabs.clear();
 
 	// Iterate all the lights on the scene
 	for (uint16_t light_i = 0; light_i < _scene_lights.size(); light_i++) {
 		LightEntity *curr_light =  _scene_lights[light_i];
-		uint16_t light_id = 0;
-		if (curr_light->light_type == DIRECTIONAL_LIGHT || curr_light->light_type == SPOT_LIGHT) {
-			light_id = shadowmap_renderer.add_light(curr_light);
-		}
-		
+
 		// Check if the opaque object is in range of the light
 		for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
 			if (curr_light->is_in_range(_opaque_objects[i].aabb)) {
 				_opaque_objects[i].add_light(curr_light);
-
-				if (curr_light->light_type == DIRECTIONAL_LIGHT || curr_light->light_type == SPOT_LIGHT) {
-					shadowmap_renderer.add_instance_to_light(light_id, _opaque_objects[i].mesh, _opaque_objects[i].model);
-				}
 			}
 		}
 
@@ -79,6 +85,8 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 			}
 		}
 	}
+
+	/**/
 
 	// Render shadows
 	shadowmap_renderer.render_scene_shadows();
@@ -359,12 +367,19 @@ void Renderer::add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node
 		//if bounding box is inside the camera frustum then the object is probably visible
 		if (camera->testBoxInFrustum(world_bounding.center, world_bounding.halfsize))
 		{
-			// Add to the queue
-
 			// Compute the closest distance between the bounding box of the mesh and the camera
 			float camera_distance = Min((world_bounding.center + world_bounding.halfsize).distance(camera->eye), world_bounding.center.distance(camera->eye));
 			camera_distance = Min(camera_distance, (world_bounding.center - world_bounding.halfsize).distance(camera->eye));
 			add_draw_instance(node_model, node->mesh, node->material, camera, world_bounding.center.distance(camera->eye), world_bounding);
+		}
+
+		// Test if the objects is on the light's frustum
+		for (uint16_t light_i = 0; light_i < _scene_lights.size(); light_i++) {
+			LightEntity* curr_light = _scene_lights[light_i];
+
+			if (curr_light->is_in_light_frustum(world_bounding)) {
+				shadowmap_renderer.add_instance_to_light(curr_light->light_id, node->mesh, node_model);
+			}
 		}
 	}
 
