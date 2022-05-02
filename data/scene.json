@@ -70,6 +70,20 @@
 			"shadow_bias": 0.001
 		},
 		{
+			"name":"spot2",
+			"type":"LIGHT",
+			"position":[-17.7,40.05,129.578],
+			"angle": 200,
+			"color":[1,0.9,0.8],
+			"intensity":10,
+			"max_dist":1000,
+			"cone_angle":45,
+			"cone_exp":60,
+			"light_type":"SPOT",
+			"cast_shadows": true,
+			"shadow_bias": 0.001
+		},
+		{
 			"name":"pointlight",
 			"type":"LIGHT",
 			"position":[-187,38,-156],
