@@ -97,12 +97,12 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 
 	// First, render the opaque object
 	for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
-		renderDrawCall(_opaque_objects[i]);
+		renderDrawCall(_opaque_objects[i], scene);
 	}
 
 	// then, render the translucnet, and masked objects
 	for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
-		renderDrawCall(_translucent_objects[i]);
+		renderDrawCall(_translucent_objects[i], scene);
 	}
 
 	_opaque_objects.clear();
@@ -159,7 +159,7 @@ void Renderer::renderNode(const Matrix44& prefab_model, GTR::Node* node, Camera*
 		renderNode(prefab_model, node->children[i], camera);
 }
 
-inline void Renderer::renderDrawCall(const sDrawCall& draw_call) {
+inline void Renderer::renderDrawCall(const sDrawCall& draw_call, const Scene *scene) {
 	//in case there is nothing to do
 	if (!draw_call.mesh || !draw_call.mesh->getNumVertices() || !draw_call.material)
 		return;
@@ -205,6 +205,7 @@ inline void Renderer::renderDrawCall(const sDrawCall& draw_call) {
 
 	// Upload light data
 	// Common data of the lights
+	shader->setUniform("u_ambient_light", scene->ambient_light);
 	shader->setUniform3Array("u_light_pos", (float*) draw_call.light_positions, draw_call.light_count);
 	shader->setUniform3Array("u_light_color", (float*) draw_call.light_color, draw_call.light_count);
 	shader->setUniform1Array("u_light_type", (int*) draw_call.light_type, draw_call.light_count);
@@ -227,9 +228,7 @@ inline void Renderer::renderDrawCall(const sDrawCall& draw_call) {
 		shader->setUniform("u_texture", texture, 0);
 
 	// Set the shadowmap
-	//shader->setUniform("u_shadow_map", shadowmap_renderer.get_shadowmap(), 8);
-	//shader->setMatrix44Array("u_shadow_vp", shadowmap_renderer.light_view_projections, MAX_LIGHT_NUM);
-	//shader->setUniform("u_shadow_bias", shadowmap_renderer.shadow_bias);
+	shadowmap_renderer.bind_shadows(shader);
 
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", draw_call.material->alpha_mode == GTR::eAlphaMode::MASK ? draw_call.material->alpha_cutoff : 0);

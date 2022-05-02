@@ -162,6 +162,13 @@ void main()
 		if (i >= u_num_lights) {
 			continue;
 		}
+
+		float shadow_compoment = get_shadow_component(i);
+
+		if (shadow_compoment == 0) {
+			continue;
+		}
+
 		vec3 L = vec3(0.0);
 		vec3 D = normalize(u_light_direction[i]);
 
@@ -182,16 +189,9 @@ void main()
 		} else { // For directional & spotlight
 			light_component += (n_dot_l * u_light_color[i]);
 		}
-
-		float shadow_compoment = get_shadow_component(i);
-
-		if (shadow_compoment == 0) {
-			in_shadow = true;
-			break;
-		}
 	}
 
-	color.rgb = color.rgb * (light_component);
+	color.rgb = color.rgb * (light_component + u_ambient_light);
 
 	if (in_shadow) {
 		color.rgb = vec3(0.0);

@@ -85,7 +85,7 @@ namespace GTR {
 		//add here your functions
 		//...
 		void init();
-		void renderDrawCall(const sDrawCall& draw_call);
+		void renderDrawCall(const sDrawCall& draw_call, const Scene *scene);
 
 		void add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node, Camera* camera);
 

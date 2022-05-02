@@ -11,7 +11,7 @@
 	// ================
 	// NOTA: la sombra de luzes rollo sol (direcional no?) es relativa a la camara
 	//       
-#define SHADOW_MAP_RES 1024
+#define SHADOW_MAP_RES 2048
 
 namespace GTR {
 	struct sShadowDrawCall {
@@ -28,7 +28,8 @@ namespace GTR {
 	};
 
 	class ShadowRenderer {
-		const vec3 TILES_SIZES[7] = {
+	public:
+		const vec3 SHADOW_TILES_SIZES[7] = {
 			vec3(0.0, 0.5, 0.5), // Tile 0
 			vec3(0.0, 0.0, 0.5), // 1
 			vec3(0.5, 0.0, 0.25), // 2
@@ -38,10 +39,9 @@ namespace GTR {
 			vec3(0.75, 0.5, 0.25) // 6
 		};
 
-	public:
 		std::vector<sShadowDrawCall> draw_call_stack;
 		Matrix44 light_view_projections[MAX_LIGHT_NUM];
-		uint32_t  light_projection_count = 0;
+		int  light_projection_count = 0;
 
 		FBO* shadowmap;
 
@@ -55,9 +55,16 @@ namespace GTR {
 			light_projection_count = 0;
 		}
 
-		void render_light(sShadowDrawCall& draw_call);
+		void render_light(sShadowDrawCall& draw_call, Matrix44& vp_matrix);
 
 		void render_scene_shadows();
+
+		inline void bind_shadows(Shader* scene_shader) {
+			scene_shader->setUniform("u_shadow_map", get_shadowmap(), 8);
+			scene_shader->setMatrix44Array("u_shadow_vp", light_view_projections, MAX_LIGHT_NUM);
+			scene_shader->setUniform("u_shadow_count", light_projection_count);
+			scene_shader->setUniform("u_shadow_bias", shadow_bias);
+		}
 
 		inline Texture* get_shadowmap() const {
 			return shadowmap->depth_texture;
