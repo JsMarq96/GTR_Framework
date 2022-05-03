@@ -45,7 +45,7 @@ namespace GTR {
 
 		FBO* shadowmap;
 
-		float shadow_bias = 0.0001f;
+		float shadow_bias = 0.005f;
 
 		void init();
 		void clean();
