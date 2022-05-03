@@ -93,6 +93,7 @@ namespace GTR {
 
 		void add_draw_instance(const Matrix44 model, Mesh* mesh, GTR::Material* material, Camera* camera, const float camera_distance, const BoundingBox &aabb);
 
+		inline void bind_textures(const Material* materia, Shader* shaderl);
 
 		inline void renderInMenu() {
 #ifndef SKIP_IMGUI

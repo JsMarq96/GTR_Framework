@@ -87,8 +87,11 @@ in vec2 v_uv;
 in vec4 v_color;
 in vec2 v_frag_shadow_uv;
 
+// Material data
 uniform vec4 u_color;
 uniform sampler2D u_texture;
+uniform sampler2D u_emmisive_tex;
+
 uniform float u_time;
 uniform float u_alpha_cutoff;
 
@@ -205,8 +208,14 @@ in vec2 v_uv;
 in vec4 v_color;
 in vec2 v_frag_shadow_uv;
 
+// Material data
 uniform vec4 u_color;
 uniform sampler2D u_texture;
+uniform sampler2D u_emmisive_tex;
+uniform sampler2D u_met_rough_tex;
+uniform sampler2D u_normal_tex;
+uniform sampler2D u_occlusion_tex;
+
 uniform float u_time;
 uniform float u_alpha_cutoff;
 
@@ -310,11 +319,10 @@ void main()
 		}
 	}
 
-	color.rgb = color.rgb * (light_component + u_ambient_light);
+	vec3 emmisive_comp = texture( u_emmisive_tex, v_uv ).rgb;
+	float occlusion_comp = texture( u_occlusion_tex, v_uv ).r;
 
-	if (in_shadow) {
-		color.rgb = vec3(0.0);
-	}
+	color.rgb = color.rgb * (light_component + u_ambient_light + emmisive_comp) * occlusion_comp;
 
 	FragColor = color;
 }

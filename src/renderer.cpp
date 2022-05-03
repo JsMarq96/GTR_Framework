@@ -172,6 +172,35 @@ void Renderer::renderNode(const Matrix44& prefab_model, GTR::Node* node, Camera*
 		renderNode(prefab_model, node->children[i], camera);
 }
 
+
+inline void Renderer::bind_textures(const Material* material, Shader *shader) {
+	Texture* albedo_texture = NULL, *emmisive_texture = NULL, *mr_texture = NULL, *normal_texture = NULL;
+	Texture* occlusion_texture = NULL;
+
+	albedo_texture = material->color_texture.texture;
+	emmisive_texture = material->emissive_texture.texture;
+	mr_texture = material->metallic_roughness_texture.texture;
+	normal_texture = material->normal_texture.texture;
+	occlusion_texture = material->occlusion_texture.texture;
+
+	if (albedo_texture == NULL)
+		albedo_texture = Texture::getWhiteTexture(); //a 1x1 white texture
+	if (emmisive_texture == NULL)
+		emmisive_texture = Texture::getBlackTexture(); //a 1x1 black texture
+	if (mr_texture == NULL)
+		mr_texture = Texture::getBlackTexture(); //a 1x1 black texture
+	if (normal_texture == NULL)
+		normal_texture = Texture::getBlackTexture(); //a 1x1 black texture
+	if(occlusion_texture == NULL)
+		occlusion_texture = Texture::getWhiteTexture(); //a 1x1 black texture
+
+	shader->setUniform("u_texture", albedo_texture, 0);
+	shader->setUniform("u_emmisive_tex", emmisive_texture, 1);
+	shader->setUniform("u_met_rough_tex", mr_texture, 2);
+	shader->setUniform("u_normal_tex", normal_texture, 3);
+	shader->setUniform("u_occlusion_tex", occlusion_texture, 4);
+}
+
 inline void Renderer::singleRenderDrawCall(const sDrawCall& draw_call, const Scene *scene) {
 	//in case there is nothing to do
 	if (!draw_call.mesh || !draw_call.mesh->getNumVertices() || !draw_call.material)
@@ -180,15 +209,6 @@ inline void Renderer::singleRenderDrawCall(const sDrawCall& draw_call, const Sce
 
 	//define locals to simplify coding
 	Shader* shader = NULL;
-	Texture* texture = NULL;
-
-	texture = draw_call.material->color_texture.texture;
-	//texture = material->emissive_texture;
-	//texture = material->metallic_roughness_texture;
-	//texture = material->normal_texture;
-	//texture = material->occlusion_texture;
-	if (texture == NULL)
-		texture = Texture::getWhiteTexture(); //a 1x1 white texture
 
 	//select the blending
 	if (draw_call.material->alpha_mode == GTR::eAlphaMode::BLEND)
@@ -236,9 +256,9 @@ inline void Renderer::singleRenderDrawCall(const sDrawCall& draw_call, const Sce
 	float t = getTime();
 	shader->setUniform("u_time", t);
 
+	// Material properties
 	shader->setUniform("u_color", draw_call.material->color);
-	if (texture)
-		shader->setUniform("u_texture", texture, 0);
+	bind_textures(draw_call.material, shader);
 
 	// Set the shadowmap
 	shadowmap_renderer.bind_shadows(shader);
@@ -363,15 +383,6 @@ inline void Renderer::multiRenderDrawCall(const sDrawCall& draw_call, const Scen
 
 	//define locals to simplify coding
 	Shader* shader = NULL;
-	Texture* texture = NULL;
-
-	texture = draw_call.material->color_texture.texture;
-	//texture = material->emissive_texture;
-	//texture = material->metallic_roughness_texture;
-	//texture = material->normal_texture;
-	//texture = material->occlusion_texture;
-	if (texture == NULL)
-		texture = Texture::getWhiteTexture(); //a 1x1 white texture
 
 	//select if render both sides of the triangles
 	if (draw_call.material->two_sided)
@@ -402,9 +413,9 @@ inline void Renderer::multiRenderDrawCall(const sDrawCall& draw_call, const Scen
 	float t = getTime();
 	shader->setUniform("u_time", t);
 
+	// Material properties
 	shader->setUniform("u_color", draw_call.material->color);
-	if (texture)
-		shader->setUniform("u_texture", texture, 0);
+	bind_textures(draw_call.material, shader);
 
 	// Set the shadowmap
 	shadowmap_renderer.bind_shadows(shader);
@@ -417,9 +428,11 @@ inline void Renderer::multiRenderDrawCall(const sDrawCall& draw_call, const Scen
 		if (light_id == 0) {
 			glDisable(GL_BLEND);
 			shader->setUniform("u_ambient_light", scene->ambient_light);
-		} else {
+		} else if (light_id == 1) {
 			glEnable(GL_BLEND);
+			// Set the ambient and the emissive textures for the next passes
 			shader->setUniform("u_ambient_light", vec3(0.0f, 0.0f, 0.0f));
+			shader->setUniform("u_emmisive_tex", Texture::getBlackTexture(), 1);
 		}
 		// Upload light data
 		// Common data of the lights
