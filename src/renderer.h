@@ -26,6 +26,7 @@ namespace GTR {
 		vec3  light_positions[MAX_LIGHT_NUM];
 		vec3  light_color[MAX_LIGHT_NUM];
 		float light_max_distance[MAX_LIGHT_NUM];
+		float light_intensities[MAX_LIGHT_NUM];
 
 		// Spot light data
 		float  light_cone_angle[MAX_LIGHT_NUM];
@@ -43,6 +44,7 @@ namespace GTR {
 				light_positions[light_count] = light->get_translation();
 				light_color[light_count] = light->color;
 				light_max_distance[light_count] = light->max_distance;
+				light_intensities[light_count] = light->intensity;
 
 				light_direction[light_count] = light->get_model().frontVector() * -1.0f;
 

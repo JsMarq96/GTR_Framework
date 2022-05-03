@@ -261,6 +261,7 @@ uniform vec3 u_light_pos[MAX_LIGHT];
 uniform vec3 u_light_color[MAX_LIGHT];
 uniform int u_light_type[MAX_LIGHT];
 uniform float u_light_max_dist[MAX_LIGHT];
+uniform float u_light_intensities[MAX_LIGHT];
 uniform int u_num_lights;
 
 // Shadows uniforms
@@ -376,7 +377,7 @@ void main()
 		if (u_light_type[i] == 2) { // Spot light
 			if (l_dot_d >= u_light_cone_angle[i]) {
 				// If the fragment to light direction is inside the angle of the spotlight
-				light_component += (pow(l_dot_d, u_light_cone_decay[i]) * n_dot_l * u_light_color[i]) * light_attenuation;
+				light_component += (pow(l_dot_d, u_light_cone_decay[i]) * n_dot_l * u_light_color[i]) * light_attenuation * u_light_intensities[i];
 			}
 		} else { // For directional & spotlight
 			light_component += (n_dot_l * u_light_color[i]) * light_attenuation;
@@ -386,7 +387,7 @@ void main()
 	vec3 emmisive_comp = texture( u_emmisive_tex, v_uv ).rgb;
 	float occlusion_comp = texture( u_occlusion_tex, v_uv ).r;
 
-	color.rgb = color.rgb * (light_component + u_ambient_light + emmisive_comp) * occlusion_comp;
+	color.rgb = color.rgb * ((light_component + emmisive_comp) + (occlusion_comp * u_ambient_light));
 
 	FragColor = color;
 }

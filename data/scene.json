@@ -100,8 +100,8 @@
 		{
 			"name":"spot2",
 			"type":"LIGHT",
-			"position":[-17.7,40.05,129.578],
-			"angle": -90,
+			"position":[-280.526, 86.220, 257.703],
+			"angle": -150,
 			"color":[1,1,1],
 			"intensity":10,
 			"max_dist":1000,
