@@ -188,7 +188,7 @@ inline void Renderer::bind_textures(const Material* material, Shader *shader) {
 	if (emmisive_texture == NULL)
 		emmisive_texture = Texture::getBlackTexture(); //a 1x1 black texture
 	if (mr_texture == NULL)
-		mr_texture = Texture::getBlackTexture(); //a 1x1 black texture
+		mr_texture = Texture::getWhiteTexture(); //a 1x1 white texture
 	if (normal_texture == NULL)
 		normal_texture = Texture::getBlackTexture(); //a 1x1 black texture
 	if(occlusion_texture == NULL)
@@ -440,6 +440,7 @@ inline void Renderer::multiRenderDrawCall(const sDrawCall& draw_call, const Scen
 		shader->setUniform("u_light_pos", draw_call.light_positions[light_id]);
 		shader->setUniform("u_light_color", draw_call.light_color[light_id]);
 		shader->setUniform("u_light_type", draw_call.light_type[light_id]);
+		shader->setUniform("u_light_max_dist", draw_call.light_max_distance[light_id]);
 		shader->setUniform("u_light_id", light_id);
 
 		// Spotlight data of the lights
