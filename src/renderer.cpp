@@ -242,6 +242,7 @@ inline void Renderer::singleRenderDrawCall(const sDrawCall& draw_call, const Sce
 	shader->setUniform3Array("u_light_pos", (float*) draw_call.light_positions, draw_call.light_count);
 	shader->setUniform3Array("u_light_color", (float*) draw_call.light_color, draw_call.light_count);
 	shader->setUniform1Array("u_light_type", (int*) draw_call.light_type, draw_call.light_count);
+	shader->setUniform1Array("u_light_max_dist", (float*)draw_call.light_max_distance, draw_call.light_count);
 	shader->setUniform("u_num_lights", draw_call.light_count);
 
 	// Spotlight data of the lights

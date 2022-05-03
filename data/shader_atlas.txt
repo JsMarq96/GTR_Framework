@@ -225,6 +225,7 @@ const int MAX_LIGHT = 7;
 uniform vec3 u_light_pos[MAX_LIGHT];
 uniform vec3 u_light_color[MAX_LIGHT];
 uniform int u_light_type[MAX_LIGHT];
+uniform float u_light_max_dist[MAX_LIGHT];
 uniform int u_num_lights;
 
 // Shadows uniforms
@@ -308,14 +309,18 @@ void main()
 		
 		float n_dot_l = max(dot(L, N), 0.0);
 		float l_dot_d = dot(D, L);
+		// Quadratic light attenuation
+		float light_attenuation = u_light_max_dist[i] - length(u_light_pos[i] - v_world_position);
+		light_attenuation = max(light_attenuation / u_light_max_dist[i], 0.0); 
+		light_attenuation *= light_attenuation;
 
 		if (u_light_type[i] == 2) { // Spot light
 			if (l_dot_d >= u_light_cone_angle[i]) {
 				// If the fragment to light direction is inside the angle of the spotlight
-				light_component += (pow(l_dot_d, u_light_cone_decay[i]) * n_dot_l * u_light_color[i]);
+				light_component += (pow(l_dot_d, u_light_cone_decay[i]) * n_dot_l * u_light_color[i]) * light_attenuation;
 			}
 		} else { // For directional & spotlight
-			light_component += (n_dot_l * u_light_color[i]);
+			light_component += (n_dot_l * u_light_color[i]) * light_attenuation;
 		}
 	}
 
