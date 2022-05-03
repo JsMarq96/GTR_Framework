@@ -404,8 +404,8 @@ inline void Renderer::multiRenderDrawCall(const sDrawCall& draw_call, const Scen
 
 	// Render pixels that has equal or less depth that the actual pixel
 	glDepthFunc(GL_LEQUAL);
-
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	// Change the blending so that we can render transparent object
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	//upload uniforms
 	shader->setUniform("u_viewprojection", draw_call.camera->viewprojection_matrix);
@@ -420,6 +420,7 @@ inline void Renderer::multiRenderDrawCall(const sDrawCall& draw_call, const Scen
 
 	// Set the shadowmap
 	shadowmap_renderer.bind_shadows(shader);
+	glEnable(GL_BLEND);
 
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", draw_call.material->alpha_mode == GTR::eAlphaMode::MASK ? draw_call.material->alpha_cutoff : 0);
@@ -427,10 +428,10 @@ inline void Renderer::multiRenderDrawCall(const sDrawCall& draw_call, const Scen
 	shader->setUniform("u_ambient_light", scene->ambient_light);
 	for (int light_id = 0; light_id < draw_call.light_count; light_id++) {
 		if (light_id == 0) {
-			glDisable(GL_BLEND);
 			shader->setUniform("u_ambient_light", scene->ambient_light);
 		} else if (light_id == 1) {
-			glEnable(GL_BLEND);
+			// Set blending to additive
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 			// Set the ambient and the emissive textures for the next passes
 			shader->setUniform("u_ambient_light", vec3(0.0f, 0.0f, 0.0f));
 			shader->setUniform("u_emmisive_tex", Texture::getBlackTexture(), 1);
