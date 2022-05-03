@@ -104,6 +104,7 @@ uniform vec3 u_light_pos;
 uniform vec3 u_light_color;
 uniform int u_light_type;
 uniform float u_light_max_dist;
+uniform float u_light_intensities;
 uniform int u_num_lights;
 
 // Spot light uniforms
@@ -219,10 +220,10 @@ void main()
 	if (u_light_type == 2) { // Spot light
 		if (l_dot_d >= u_light_cone_angle) {
 			// If the fragment to light direction is inside the angle of the spotlight
-			light_component += (pow(l_dot_d, u_light_cone_decay) * n_dot_l * u_light_color) * light_attenuation;
+			light_component += (pow(l_dot_d, u_light_cone_decay) * n_dot_l * u_light_color) * light_attenuation * u_light_intensities;
 		}
 	} else { // For directional & spotlight
-		light_component += (n_dot_l * u_light_color) * light_attenuation;
+		light_component += (n_dot_l * u_light_color) * light_attenuation * u_light_intensities;
 	}
 	vec3 emmisive_comp = texture( u_emmisive_tex, v_uv ).rgb;
 	float occlusion_comp = texture( u_occlusion_tex, v_uv ).r;
@@ -380,7 +381,7 @@ void main()
 				light_component += (pow(l_dot_d, u_light_cone_decay[i]) * n_dot_l * u_light_color[i]) * light_attenuation * u_light_intensities[i];
 			}
 		} else { // For directional & spotlight
-			light_component += (n_dot_l * u_light_color[i]) * light_attenuation;
+			light_component += (n_dot_l * u_light_color[i]) * light_attenuation * u_light_intensities[i];
 		}
 	}
 

@@ -443,6 +443,7 @@ inline void Renderer::multiRenderDrawCall(const sDrawCall& draw_call, const Scen
 		shader->setUniform("u_light_color", draw_call.light_color[light_id]);
 		shader->setUniform("u_light_type", draw_call.light_type[light_id]);
 		shader->setUniform("u_light_max_dist", draw_call.light_max_distance[light_id]);
+		shader->setUniform("u_light_intensities", draw_call.light_intensities[light_id]);
 		shader->setUniform("u_light_id", light_id);
 
 		// Spotlight data of the lights
