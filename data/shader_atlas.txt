@@ -6,6 +6,7 @@ multi basic.vs multi.fs
 multi_phong basic.vs multi_phong.fs
 single_phong basic.vs single_phong.fs
 deferred_plane_opaque basic.vs deferred_plain_opaque.fs
+deferred_pass quad.vs deferred_pass.fs
 
 \basic.vs
 
@@ -518,6 +519,25 @@ void main()
 	float z = texture2D(u_texture,v_uv).x;
 	float color = n * (z + 1.0) / (f + n - z * (f - n));
 	FragColor = vec4(color);
+}
+
+
+\deferred_pass.fs
+
+#version 330 core
+
+uniform vec2 u_camera_nearfar;
+uniform sampler2D u_albedo_tex;
+uniform sampler2D u_normal_occ_tex;
+uniform sampler2D u_met_rough_tex;
+uniform sampler2D u_depth_tex;
+
+in vec2 v_uv;
+out vec4 FragColor;
+
+void main()
+{
+	FragColor = vec4(texture2D(u_albedo_tex, v_uv).rgb * texture2D(u_normal_occ_tex, v_uv).a, 1.0);
 }
 
 \instanced.vs

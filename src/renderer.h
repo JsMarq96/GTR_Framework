@@ -119,6 +119,7 @@ namespace GTR {
 		void deferredRenderScene(const Scene* scene);
 
 		void renderDeferredPlainDrawCall(const sDrawCall& draw_call, const Scene* scene);
+		void renderDefferredPass(const Scene* scene);
 
 		void _init_deferred_renderer();
 
@@ -172,6 +173,7 @@ namespace GTR {
 			shader->setUniform("u_normal_tex", normal_texture, 3);
 			shader->setUniform("u_occlusion_tex", occlusion_texture, 4);
 		};
+
 
 		inline void renderInMenu() {
 #ifndef SKIP_IMGUI

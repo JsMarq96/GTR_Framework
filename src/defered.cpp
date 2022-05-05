@@ -40,6 +40,8 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene) {
 
 	switch (deferred_output) {
 	case RESULT:
+		renderDefferredPass(scene);
+		break;
 	case COLOR:
 		deferred_gbuffer->color_textures[0]->toViewport();
 		break;
@@ -50,6 +52,31 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene) {
 		deferred_gbuffer->color_textures[2]->toViewport();
 		break;
 	};
+}
+
+void GTR::Renderer::renderDefferredPass(const Scene* scene) {
+	Shader* shader_pass = Shader::Get("deferred_pass");
+
+	assert(shader_pass != NULL && "Error null shader");
+	shader_pass->enable();
+
+	shader_pass->setUniform("u_albedo_tex", deferred_gbuffer->color_textures[0], 0);
+	shader_pass->setUniform("u_normal_occ_tex", deferred_gbuffer->color_textures[1], 1);
+	shader_pass->setUniform("u_met_rough_tex", deferred_gbuffer->color_textures[2], 2);
+	shader_pass->setUniform("u_depth_tex", deferred_gbuffer->depth_texture, 3);
+
+	Mesh* quad = Mesh::getQuad();
+	
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+
+	quad->render(GL_TRIANGLES);
+
+	assert(glGetError() == GL_NO_ERROR);
+	shader_pass->disable();
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
 }
 
 
