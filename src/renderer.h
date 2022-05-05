@@ -72,15 +72,23 @@ namespace GTR {
 	class Prefab;
 	class Material;
 
+	enum eRenderPipe : uint8_t {
+		FORWARD = 0,
+		DEFERRED
+	};
+
 	// This class is in charge of rendering anything in our system.
 	// Separating the render from anything else makes the code cleaner
 	class Renderer
 	{
+
 		std::vector<sDrawCall> _opaque_objects;
 		std::vector<sDrawCall> _translucent_objects;
 		std::vector<LightEntity*> _scene_lights;
 
 		ShadowRenderer shadowmap_renderer;
+
+		eRenderPipe current_pipeline = FORWARD;
 
 		bool use_single_pass = true;
 		bool show_shadowmap = false;
@@ -90,22 +98,15 @@ namespace GTR {
 		//add here your functions
 		//...
 		void init();
-		void singleRenderDrawCall(const sDrawCall& draw_call, const Scene *scene);
-		void multiRenderDrawCall(const sDrawCall& draw_call, const Scene* scene);
+		void forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Scene *scene);
+		void forwardMultiRenderDrawCall(const sDrawCall& draw_call, const Scene* scene);
+
+		void forwardRenderScene(const Scene* scene);
+		void deferredRenderScene(const Scene* scene);
 
 		void add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node, Camera* camera);
 
 		void add_draw_instance(const Matrix44 model, Mesh* mesh, GTR::Material* material, Camera* camera, const float camera_distance, const BoundingBox &aabb);
-
-		inline void bind_textures(const Material* materia, Shader* shaderl);
-
-		inline void renderInMenu() {
-#ifndef SKIP_IMGUI
-			shadowmap_renderer.renderInMenu();
-			ImGui::Checkbox("Show shadowmap", &show_shadowmap);
-			ImGui::Checkbox("Use singlepass", &use_single_pass);
-#endif
-		}
 
 		// ===============================================
 		// ===============================================
@@ -121,6 +122,58 @@ namespace GTR {
 
 		//to render one mesh given its material and transformation matrix
 		void renderMeshWithMaterial(const Matrix44 model, Mesh* mesh, GTR::Material* material, Camera* camera);
+
+
+		// =======================
+		// INLINE FUNCTIONS
+		// =======================
+		inline void bind_textures(const Material* material, Shader* shader) {
+			Texture* albedo_texture = NULL, * emmisive_texture = NULL, * mr_texture = NULL, * normal_texture = NULL;
+			Texture* occlusion_texture = NULL;
+
+			albedo_texture = material->color_texture.texture;
+			emmisive_texture = material->emissive_texture.texture;
+			mr_texture = material->metallic_roughness_texture.texture;
+			normal_texture = material->normal_texture.texture;
+			occlusion_texture = material->occlusion_texture.texture;
+
+			if (albedo_texture == NULL)
+				albedo_texture = Texture::getWhiteTexture(); //a 1x1 white texture
+			if (emmisive_texture == NULL)
+				emmisive_texture = Texture::getBlackTexture(); //a 1x1 black texture
+			if (mr_texture == NULL)
+				mr_texture = Texture::getWhiteTexture(); //a 1x1 white texture
+			if (normal_texture == NULL)
+				normal_texture = Texture::getBlackTexture(); //a 1x1 black texture
+			if (occlusion_texture == NULL)
+				occlusion_texture = Texture::getWhiteTexture(); //a 1x1 black texture
+
+			shader->setUniform("u_texture", albedo_texture, 0);
+			shader->setUniform("u_emmisive_tex", emmisive_texture, 1);
+			shader->setUniform("u_met_rough_tex", mr_texture, 2);
+			shader->setUniform("u_normal_tex", normal_texture, 3);
+			shader->setUniform("u_occlusion_tex", occlusion_texture, 4);
+		};
+
+		inline void renderInMenu() {
+#ifndef SKIP_IMGUI
+			shadowmap_renderer.renderInMenu();
+			ImGui::Checkbox("Show shadowmap", &show_shadowmap);
+
+			const char* rend_pipe[2] = { "FORWARD", "DEFERRED"};
+			ImGui::Combo("Rendering pipeline", (int*) &current_pipeline, rend_pipe, IM_ARRAYSIZE(rend_pipe));
+
+			switch (current_pipeline) {
+			case FORWARD:
+				ImGui::Checkbox("Use singlepass", &use_single_pass);
+				break;
+			case DEFERRED:
+			default:
+				break;
+			}
+			
+#endif
+		}
 	};
 
 	Texture* CubemapFromHDRE(const char* filename);
