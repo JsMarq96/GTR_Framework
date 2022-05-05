@@ -435,8 +435,8 @@ void main()
 	float occlusion_comp = texture( u_occlusion_tex, v_uv ).r;
 
 	o_frag_albedo = color;
-	o_frag_normal = vec4(texture( u_normal_tex, v_uv).rgb, occlusion_comp);
-	o_frag_materials = vec4(texture( u_met_rough_tex, v_uv).rg, 0.0, 0.0);
+	o_frag_normal = vec4(texture( u_normal_tex, v_uv).rgb, 1.0);
+	o_frag_materials = vec4(texture( u_met_rough_tex, v_uv).rg, occlusion_comp, 0.0);
 }
 
 \texture.fs

@@ -95,14 +95,19 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	std::sort(_opaque_objects.begin(), _opaque_objects.end(), opaque_draw_call_distance_comp);
 	std::sort(_translucent_objects.begin(), _translucent_objects.end(), translucent_draw_call_distance_comp);
 
+	/**
 	switch(current_pipeline) {
 	case FORWARD:
 		forwardRenderScene(scene);
 		break;
 	case DEFERRED:
+		
+		break;
 	default:
 		break;
-	}
+	}*/
+
+	deferredRenderScene(scene);
 
 	_opaque_objects.clear();
 	_translucent_objects.clear();

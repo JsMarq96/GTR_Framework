@@ -24,17 +24,32 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene) {
 	glClearColor(0.1, 0.1, 0.1, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT);
 
+	deferred_gbuffer->enableSingleBuffer(2);
+	glClearColor(0.1, 0.1, 0.1, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT);
+
 	deferred_gbuffer->enableAllBuffers();
 
 	// Note, only render the opaque drawcalls
 
+	//std::cout << _opaque_objects.size() << std::endl;
 	for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
 		renderDeferredPlainDrawCall(_opaque_objects[i], scene);
 	}
-
 	deferred_gbuffer->unbind();
 
-	deferred_gbuffer->color_textures[0]->toViewport();
+	switch (deferred_output) {
+	case RESULT:
+	case COLOR:
+		deferred_gbuffer->color_textures[0]->toViewport();
+		break;
+	case NORMAL:
+		deferred_gbuffer->color_textures[1]->toViewport();
+		break;
+	case MATERIAL:
+		deferred_gbuffer->color_textures[2]->toViewport();
+		break;
+	};
 }
 
 
