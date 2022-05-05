@@ -5,6 +5,7 @@ depth quad.vs depth.fs
 multi basic.vs multi.fs
 multi_phong basic.vs multi_phong.fs
 single_phong basic.vs single_phong.fs
+deferred_plane_opaque basic.vs deferred_plain_opaque.fs
 
 \basic.vs
 
@@ -391,6 +392,51 @@ void main()
 	color.rgb = color.rgb * ((light_component + emmisive_comp) + (occlusion_comp * u_ambient_light));
 
 	FragColor = color;
+}
+
+\deferred_plain_opaque.fs
+
+#version 330 core
+
+in vec3 v_position;
+in vec3 v_world_position;
+in vec3 v_normal;
+in vec2 v_uv;
+in vec4 v_color;
+in vec2 v_frag_shadow_uv;
+
+// Material data
+uniform vec4 u_color;
+uniform sampler2D u_texture;
+uniform sampler2D u_emmisive_tex;
+uniform sampler2D u_met_rough_tex;
+uniform sampler2D u_normal_tex;
+uniform sampler2D u_occlusion_tex;
+
+uniform float u_time;
+uniform float u_alpha_cutoff;
+
+layout(location = 0) out vec4 o_frag_albedo;
+layout(location = 1) out vec4 o_frag_normal;
+layout(location = 2) out vec4 o_frag_materials;
+
+void main()
+{
+	vec2 uv = v_uv;
+	vec4 color = u_color;
+	color *= texture( u_texture, v_uv );
+
+	if(color.a < u_alpha_cutoff)
+		discard;
+
+	vec3 light_component = vec3(0.0);
+
+	vec3 emmisive_comp = texture( u_emmisive_tex, v_uv ).rgb;
+	float occlusion_comp = texture( u_occlusion_tex, v_uv ).r;
+
+	o_frag_albedo = color;
+	o_frag_normal = vec4(texture( u_normal_tex, v_uv).rgb, occlusion_comp);
+	o_frag_materials = vec4(texture( u_met_rough_tex, v_uv).rg, 0.0, 0.0);
 }
 
 \texture.fs

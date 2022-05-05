@@ -81,6 +81,15 @@ namespace GTR {
 	// Separating the render from anything else makes the code cleaner
 	class Renderer
 	{
+		enum eDeferredDebugOutput {
+			RESULT = 0,
+			COLOR,
+			NORMAL,
+			MATERIAL,
+			DEFERRED_DEBUG_SIZE
+		};
+
+		FBO* deferred_gbuffer = NULL;
 
 		std::vector<sDrawCall> _opaque_objects;
 		std::vector<sDrawCall> _translucent_objects;
@@ -90,7 +99,12 @@ namespace GTR {
 
 		eRenderPipe current_pipeline = FORWARD;
 
+		// Debgging toggles for forward rendering
 		bool use_single_pass = true;
+
+		// Debugging for Deferred rendering
+		eDeferredDebugOutput deferred_output = RESULT;
+
 		bool show_shadowmap = false;
 
 	public:
@@ -103,6 +117,10 @@ namespace GTR {
 
 		void forwardRenderScene(const Scene* scene);
 		void deferredRenderScene(const Scene* scene);
+
+		void renderDeferredPlainDrawCall(const sDrawCall& draw_call, const Scene* scene);
+
+		void _init_deferred_renderer();
 
 		void add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node, Camera* camera);
 
@@ -161,6 +179,7 @@ namespace GTR {
 			ImGui::Checkbox("Show shadowmap", &show_shadowmap);
 
 			const char* rend_pipe[2] = { "FORWARD", "DEFERRED"};
+			const char* deferred_output_labels[DEFERRED_DEBUG_SIZE] = {"Final Result", "Color", "Normal", "Materials"};
 			ImGui::Combo("Rendering pipeline", (int*) &current_pipeline, rend_pipe, IM_ARRAYSIZE(rend_pipe));
 
 			switch (current_pipeline) {
@@ -168,6 +187,8 @@ namespace GTR {
 				ImGui::Checkbox("Use singlepass", &use_single_pass);
 				break;
 			case DEFERRED:
+				ImGui::Combo("Deferred debug", (int*)&deferred_output, deferred_output_labels, IM_ARRAYSIZE(deferred_output_labels));
+				break;
 			default:
 				break;
 			}

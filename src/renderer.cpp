@@ -260,6 +260,9 @@ void Renderer::renderMeshWithMaterial(const Matrix44 model, Mesh* mesh, GTR::Mat
 
 void Renderer::init() {
 	shadowmap_renderer.init();
+
+	// No need to add any preparations for forward renderer
+	_init_deferred_renderer();
 }
 
 void Renderer::add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node, Camera* camera) {
