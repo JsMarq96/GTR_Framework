@@ -89,6 +89,8 @@ namespace GTR {
 			COLOR,
 			NORMAL,
 			MATERIAL,
+			DEPTH,
+			WORLD_POS,
 			DEFERRED_DEBUG_SIZE
 		};
 
@@ -185,7 +187,7 @@ namespace GTR {
 			ImGui::Checkbox("Show shadowmap", &show_shadowmap);
 
 			const char* rend_pipe[2] = { "FORWARD", "DEFERRED"};
-			const char* deferred_output_labels[DEFERRED_DEBUG_SIZE] = {"Final Result", "Color", "Normal", "Materials"};
+			const char* deferred_output_labels[DEFERRED_DEBUG_SIZE] = {"Final Result", "Color", "Normal", "Materials", "Depth", "World pos."};
 			ImGui::Combo("Rendering pipeline", (int*) &current_pipeline, rend_pipe, IM_ARRAYSIZE(rend_pipe));
 
 			switch (current_pipeline) {

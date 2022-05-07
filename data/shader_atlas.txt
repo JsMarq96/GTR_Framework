@@ -7,6 +7,69 @@ multi_phong basic.vs multi_phong.fs
 single_phong basic.vs single_phong.fs
 deferred_plane_opaque basic.vs deferred_plain_opaque.fs
 deferred_pass quad.vs deferred_pass.fs
+deferred_world_pos quad.vs deferred_world_pos.fs
+
+\depth_functions
+
+const vec3 TILES_SIZES[MAX_SHADOWS] = vec3[](
+	vec3(0.0, 0.5, 0.5), // Tile 0
+	vec3(0.0, 0.0, 0.5), // 1
+	vec3(0.5, 0.0, 0.25), // 2
+	vec3(0.5, 0.25, 0.25), // 3
+	vec3(0.75, 0.0, 0.25), // 4
+	vec3(0.75, 0.25, 0.25), // 5
+	vec3(0.75, 0.5, 0.25) // 6
+);
+
+float get_shadow_component(int light_id) {
+	vec4 frag_shadow_pos = u_shadow_vp[light_id] * vec4(v_world_position, 1.0);
+	//vec4 frag_shadow_pos =  vec4(v_world_position, 1.0);
+	vec2 frag_shadow_uv = ((frag_shadow_pos.xy / frag_shadow_pos.w) * 0.5) + vec2(0.5); // ??
+
+	if (frag_shadow_uv.x < 0.0 && frag_shadow_uv.x > 1.0 && frag_shadow_uv.y < 0.0 && frag_shadow_uv.y > 1.0) {
+		return 0.0;
+	}
+
+	frag_shadow_uv.xy = TILES_SIZES[light_id].xy + (frag_shadow_uv.xy * TILES_SIZES[light_id].z);
+
+	float frag_depth = (((frag_shadow_pos.z - u_shadow_bias) / frag_shadow_pos.w) * 0.5) + 0.5;
+	float shadow_map_depth = texture(u_shadow_map, frag_shadow_uv).x;
+
+	float shadow_compoment = 1.0f;
+	if (shadow_map_depth < frag_depth && (frag_depth > 0.0 && frag_depth < 1.0)) {
+		shadow_compoment = 0.0;
+	}
+
+	return shadow_compoment;
+}
+
+\normal_functions
+
+mat3 cotangentFrame(vec3 N, vec3 p, vec2 uv) {
+  // get edge vectors of the pixel triangle
+  vec3 dp1 = dFdx(p);
+  vec3 dp2 = dFdy(p);
+  vec2 duv1 = dFdx(uv);
+  vec2 duv2 = dFdy(uv);
+
+  // solve the linear system
+  vec3 dp2perp = cross(dp2, N);
+  vec3 dp1perp = cross(N, dp1);
+  vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
+  vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+
+  // construct a scale-invariant frame 
+  float invmax = 1.0 / sqrt(max(dot(T,T), dot(B,B)));
+  return mat3(normalize(T * invmax), normalize(B * invmax), N);
+}
+
+vec3 perturbNormal(vec3 N, vec3 world_pos, vec2 uv) {
+	vec3 normal_pixel = texture2D(u_normal_tex, uv).xyz;
+	// from 1 - 0 range to -1 - 1 range
+	normal_pixel = normal_pixel * 255.0/127.0 - 128.0/127.0;
+	mat3 TBN = cotangentFrame(N, world_pos, uv);
+	return normalize(TBN * normal_pixel);
+}
 
 \basic.vs
 
@@ -56,11 +119,14 @@ void main()
 
 in vec3 a_vertex;
 in vec2 a_coord;
+in mat4 u_viewprojection;
 out vec2 v_uv;
+out mat4 v_viewprojection_inv;
 
 void main()
 {	
 	v_uv = a_coord;
+	v_viewprojection_inv = inverse(u_viewprojection);
 	gl_Position = vec4( a_vertex, 1.0 );
 }
 
@@ -123,64 +189,9 @@ uniform int u_light_id;
 
 out vec4 FragColor;
 
-const vec3 TILES_SIZES[MAX_SHADOWS] = vec3[](
-	vec3(0.0, 0.5, 0.5), // Tile 0
-	vec3(0.0, 0.0, 0.5), // 1
-	vec3(0.5, 0.0, 0.25), // 2
-	vec3(0.5, 0.25, 0.25), // 3
-	vec3(0.75, 0.0, 0.25), // 4
-	vec3(0.75, 0.25, 0.25), // 5
-	vec3(0.75, 0.5, 0.25) // 6
-);
+#include "depth_functions"
 
-float get_shadow_component(int light_id) {
-	vec4 frag_shadow_pos = u_shadow_vp[light_id] * vec4(v_world_position, 1.0);
-	//vec4 frag_shadow_pos =  vec4(v_world_position, 1.0);
-	vec2 frag_shadow_uv = ((frag_shadow_pos.xy / frag_shadow_pos.w) * 0.5) + vec2(0.5); // ??
-
-	if (frag_shadow_uv.x < 0.0 && frag_shadow_uv.x > 1.0 && frag_shadow_uv.y < 0.0 && frag_shadow_uv.y > 1.0) {
-		return 0.0;
-	}
-
-	frag_shadow_uv.xy = TILES_SIZES[light_id].xy + (frag_shadow_uv.xy * TILES_SIZES[light_id].z);
-
-	float frag_depth = (((frag_shadow_pos.z - u_shadow_bias) / frag_shadow_pos.w) * 0.5) + 0.5;
-	float shadow_map_depth = texture(u_shadow_map, frag_shadow_uv).x;
-
-	float shadow_compoment = 1.0f;
-	if (shadow_map_depth < frag_depth && (frag_depth > 0.0 && frag_depth < 1.0)) {
-		shadow_compoment = 0.0;
-	}
-
-	return shadow_compoment;
-} 
-
-
-mat3 cotangentFrame(vec3 N, vec3 p, vec2 uv) {
-  // get edge vectors of the pixel triangle
-  vec3 dp1 = dFdx(p);
-  vec3 dp2 = dFdy(p);
-  vec2 duv1 = dFdx(uv);
-  vec2 duv2 = dFdy(uv);
-
-  // solve the linear system
-  vec3 dp2perp = cross(dp2, N);
-  vec3 dp1perp = cross(N, dp1);
-  vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
-  vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
-
-  // construct a scale-invariant frame 
-  float invmax = 1.0 / sqrt(max(dot(T,T), dot(B,B)));
-  return mat3(normalize(T * invmax), normalize(B * invmax), N);
-}
-
-vec3 perturbNormal(vec3 N, vec3 world_pos, vec2 uv) {
-	vec3 normal_pixel = texture2D(u_normal_tex, uv).xyz;
-	// from 1 - 0 range to -1 - 1 range
-	normal_pixel = normal_pixel * 255.0/127.0 - 128.0/127.0;
-	mat3 TBN = cotangentFrame(N, world_pos, uv);
-	return normalize(TBN * normal_pixel);
-}
+#include "normal_functions"
 
 void main()
 {
@@ -269,6 +280,7 @@ uniform float u_light_intensities[MAX_LIGHT];
 uniform int u_num_lights;
 
 // Shadows uniforms
+const int MAX_SHADOWS = 7;
 uniform sampler2D u_shadow_map;
 uniform mat4 u_shadow_vp[MAX_LIGHT];
 uniform float u_shadow_bias;
@@ -279,64 +291,9 @@ uniform float u_light_cone_decay[MAX_LIGHT];
 uniform vec3 u_light_direction[MAX_LIGHT];
 
 out vec4 FragColor;
+#include "depth_functions"
 
-const vec3 TILES_SIZES[7] = vec3[](
-	vec3(0.0, 0.5, 0.5), // Tile 0
-	vec3(0.0, 0.0, 0.5), // 1
-	vec3(0.5, 0.0, 0.25), // 2
-	vec3(0.5, 0.25, 0.25), // 3
-	vec3(0.75, 0.0, 0.25), // 4
-	vec3(0.75, 0.25, 0.25), // 5
-	vec3(0.75, 0.5, 0.25) // 6
-);
-
-float get_shadow_component(int light_id) {
-	vec4 frag_shadow_pos = u_shadow_vp[light_id] * vec4(v_world_position, 1.0);
-	//vec4 frag_shadow_pos =  vec4(v_world_position, 1.0);
-	vec2 frag_shadow_uv = ((frag_shadow_pos.xy / frag_shadow_pos.w) * 0.5) + vec2(0.5); // ??
-
-	if (frag_shadow_uv.x < 0.0 && frag_shadow_uv.x > 1.0 && frag_shadow_uv.y < 0.0 && frag_shadow_uv.y > 1.0) {
-		return 0.0;
-	}
-
-	frag_shadow_uv.xy = TILES_SIZES[light_id].xy + (frag_shadow_uv.xy * TILES_SIZES[light_id].z);
-
-	float frag_depth = (((frag_shadow_pos.z - u_shadow_bias) / frag_shadow_pos.w) * 0.5) + 0.5;
-	float shadow_map_depth = texture(u_shadow_map, frag_shadow_uv).x;
-
-	float shadow_compoment = 1.0f;
-	if (shadow_map_depth < frag_depth && (frag_depth > 0.0 && frag_depth < 1.0)) {
-		shadow_compoment = 0.0;
-	}
-
-	return shadow_compoment;
-}
-
-mat3 cotangentFrame(vec3 N, vec3 p, vec2 uv) {
-  // get edge vectors of the pixel triangle
-  vec3 dp1 = dFdx(p);
-  vec3 dp2 = dFdy(p);
-  vec2 duv1 = dFdx(uv);
-  vec2 duv2 = dFdy(uv);
-
-  // solve the linear system
-  vec3 dp2perp = cross(dp2, N);
-  vec3 dp1perp = cross(N, dp1);
-  vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
-  vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
-
-  // construct a scale-invariant frame 
-  float invmax = 1.0 / sqrt(max(dot(T,T), dot(B,B)));
-  return mat3(normalize(T * invmax), normalize(B * invmax), N);
-}
-
-vec3 perturbNormal(vec3 N, vec3 world_pos, vec2 uv) {
-	vec3 normal_pixel = texture2D(u_normal_tex, uv).xyz;
-	// from 1 - 0 range to -1 - 1 range
-	normal_pixel = normal_pixel * 255.0/127.0 - 128.0/127.0;
-	mat3 TBN = cotangentFrame(N, world_pos, uv);
-	return normalize(TBN * normal_pixel);
-}
+#include "normal_functions"
 
 void main()
 {
@@ -522,6 +479,31 @@ void main()
 	FragColor = vec4(color);
 }
 
+\deferred_world_pos.fs
+
+#version 330 core
+uniform sampler2D u_depth_tex;
+
+in vec2 v_uv;
+in mat4 v_viewprojection_inv;
+
+out vec4 FragColor;
+
+vec3 get_world_position_from_depth() {
+	float d = texture2D(u_depth_tex, v_uv).x;
+	d =  0.01 * (d + 1.0) / (100.0 + 0.01 - d * (100.0 - 0.01));
+	vec4 view_pos = vec4(v_uv, d, 1.0);
+	vec4 world_pos = v_viewprojection_inv * view_pos;
+
+	//return vec3(d,d,d);
+	return world_pos.xyz / world_pos.w;
+}
+
+void main()
+{
+	vec3 pos = get_world_position_from_depth();
+	FragColor = vec4(pos, 1.0);
+}
 
 \deferred_pass.fs
 
@@ -533,11 +515,28 @@ uniform sampler2D u_normal_occ_tex;
 uniform sampler2D u_met_rough_tex;
 uniform sampler2D u_depth_tex;
 
+// Shadows uniforms
+const int MAX_SHADOWS = 7;
+uniform sampler2D u_shadow_map;
+uniform mat4 u_shadow_vp[MAX_SHADOWS];
+uniform float u_shadow_bias;
+uniform int u_light_id;
+
 in vec2 v_uv;
+in mat4 v_viewprojection_inv;
+
 out vec4 FragColor;
+
+vec3 get_world_position_from_depth() {
+	vec4 view_pos = vec4(v_uv, texture(u_depth_tex, v_uv).x, 1.0);
+	vec4 world_pos = v_viewprojection_inv * view_pos;
+
+	return world_pos.xyz / world_pos.w;
+}
 
 void main()
 {
+	vec3 pos = get_world_position_from_depth();
 	FragColor = vec4(texture2D(u_albedo_tex, v_uv).rgb * texture2D(u_normal_occ_tex, v_uv).a, 1.0);
 }
 

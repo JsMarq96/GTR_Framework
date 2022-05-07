@@ -39,6 +39,7 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene) {
 	deferred_gbuffer->unbind();
 
 	switch (deferred_output) {
+	case WORLD_POS:
 	case RESULT:
 		renderDefferredPass(scene);
 		break;
@@ -51,11 +52,17 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene) {
 	case MATERIAL:
 		deferred_gbuffer->color_textures[2]->toViewport();
 		break;
+	case DEPTH:
+		Shader* depth = Shader::Get("depth");
+		depth->enable();
+		depth->setUniform("u_camera_nearfar", vec2(0.1, scene->main_camera.far_plane));
+		deferred_gbuffer->depth_texture->toViewport(depth);
+		break;
 	};
-}
+} 
 
 void GTR::Renderer::renderDefferredPass(const Scene* scene) {
-	Shader* shader_pass = Shader::Get("deferred_pass");
+	Shader* shader_pass = (deferred_output == WORLD_POS) ? Shader::Get("deferred_world_pos") : Shader::Get("deferred_pass");
 
 	assert(shader_pass != NULL && "Error null shader");
 	shader_pass->enable();
@@ -64,6 +71,13 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 	shader_pass->setUniform("u_normal_occ_tex", deferred_gbuffer->color_textures[1], 1);
 	shader_pass->setUniform("u_met_rough_tex", deferred_gbuffer->color_textures[2], 2);
 	shader_pass->setUniform("u_depth_tex", deferred_gbuffer->depth_texture, 3);
+
+	shader_pass->setUniform("u_viewprojection", scene->main_camera.viewprojection_matrix);
+	shader_pass->setUniform("u_camera_position", scene->main_camera.eye);
+	float t = getTime();
+	shader_pass->setUniform("u_time", t);
+
+	shadowmap_renderer.bind_shadows(shader_pass);
 
 	Mesh* quad = Mesh::getQuad();
 	
