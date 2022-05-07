@@ -21,8 +21,8 @@ const vec3 TILES_SIZES[MAX_SHADOWS] = vec3[](
 	vec3(0.75, 0.5, 0.25) // 6
 );
 
-float get_shadow_component(int light_id) {
-	vec4 frag_shadow_pos = u_shadow_vp[light_id] * vec4(v_world_position, 1.0);
+float get_shadow_component(int light_id, vec3 world_pos) {
+	vec4 frag_shadow_pos = u_shadow_vp[light_id] * vec4(world_pos, 1.0);
 	//vec4 frag_shadow_pos =  vec4(v_world_position, 1.0);
 	vec2 frag_shadow_uv = ((frag_shadow_pos.xy / frag_shadow_pos.w) * 0.5) + vec2(0.5); // ??
 
@@ -206,7 +206,7 @@ void main()
 
 	vec3 N = perturbNormal(normalize(v_normal), v_world_position, v_uv);
 
-	float shadow_compoment = get_shadow_component(u_light_id);
+	float shadow_compoment = get_shadow_component(u_light_id, v_world_position);
 
 	if (shadow_compoment == 0) {
 		FragColor = vec4(color.rgb * u_ambient_light, 1.0);
@@ -313,7 +313,7 @@ void main()
 			continue;
 		}
 
-		float shadow_compoment = get_shadow_component(u_light_shadow_id[i]);
+		float shadow_compoment = get_shadow_component(u_light_shadow_id[i], v_world_position);
 
 		if (shadow_compoment == 0) {
 			continue;
@@ -491,8 +491,6 @@ in mat4 v_viewprojection_inv;
 out vec4 FragColor;
 
 vec3 get_world_position_from_depth() {
-	float near = 0.01;
-	float far = 1000.0;
 	float d = texture2D(u_depth_tex, v_uv).x;	
 	vec4 clip = vec4(v_uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
 	vec4 world_pos = v_viewprojection_inv * clip;
@@ -528,9 +526,12 @@ in mat4 v_viewprojection_inv;
 
 out vec4 FragColor;
 
+#include "depth_functions"
+
 vec3 get_world_position_from_depth() {
-	vec4 view_pos = vec4(v_uv, texture(u_depth_tex, v_uv).x, 1.0);
-	vec4 world_pos = v_viewprojection_inv * view_pos;
+	float d = texture2D(u_depth_tex, v_uv).x;	
+	vec4 clip = vec4(v_uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
+	vec4 world_pos = v_viewprojection_inv * clip;
 
 	return world_pos.xyz / world_pos.w;
 }
@@ -538,7 +539,9 @@ vec3 get_world_position_from_depth() {
 void main()
 {
 	vec3 pos = get_world_position_from_depth();
-	FragColor = vec4(texture2D(u_albedo_tex, v_uv).rgb * texture2D(u_normal_occ_tex, v_uv).a, 1.0);
+
+	float shadow_compoment = get_shadow_component(0, pos);
+	FragColor = vec4(texture2D(u_albedo_tex, v_uv).rgb * texture2D(u_normal_occ_tex, v_uv).a * shadow_compoment, 1.0);
 }
 
 \instanced.vs

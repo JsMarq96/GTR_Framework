@@ -78,7 +78,7 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 	float t = getTime();
 	shader_pass->setUniform("u_time", t);
 
-	//shadowmap_renderer.bind_shadows(shader_pass);
+	shadowmap_renderer.bind_shadows(shader_pass);
 
 	Mesh* quad = Mesh::getQuad();
 	
