@@ -72,12 +72,13 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 	shader_pass->setUniform("u_met_rough_tex", deferred_gbuffer->color_textures[2], 2);
 	shader_pass->setUniform("u_depth_tex", deferred_gbuffer->depth_texture, 3);
 
-	shader_pass->setUniform("u_viewprojection", scene->main_camera.viewprojection_matrix);
-	shader_pass->setUniform("u_camera_position", scene->main_camera.eye);
+	shader_pass->setUniform("u_camera_nearfar", vec2(0.1, camera->far_plane));
+	shader_pass->setUniform("u_viewprojection", camera->viewprojection_matrix);
+	shader_pass->setUniform("u_camera_position", camera->eye);
 	float t = getTime();
 	shader_pass->setUniform("u_time", t);
 
-	shadowmap_renderer.bind_shadows(shader_pass);
+	//shadowmap_renderer.bind_shadows(shader_pass);
 
 	Mesh* quad = Mesh::getQuad();
 	
@@ -121,6 +122,7 @@ void GTR:: Renderer::renderDeferredPlainDrawCall(const sDrawCall& draw_call, con
 	if (!shader)
 		return;
 	shader->enable();
+	camera = draw_call.camera;
 
 	//upload uniforms
 	shader->setUniform("u_viewprojection", draw_call.camera->viewprojection_matrix);

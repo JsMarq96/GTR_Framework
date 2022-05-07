@@ -113,6 +113,8 @@ namespace GTR {
 
 		bool show_shadowmap = false;
 
+		Camera* camera;
+
 	public:
 
 		//add here your functions
