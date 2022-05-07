@@ -260,6 +260,7 @@ uniform float u_alpha_cutoff;
 // Light data
 uniform vec3 u_ambient_light;
 const int MAX_LIGHT = 7;
+uniform int u_light_shadow_id[MAX_LIGHT];
 uniform vec3 u_light_pos[MAX_LIGHT];
 uniform vec3 u_light_color[MAX_LIGHT];
 uniform int u_light_type[MAX_LIGHT];
@@ -355,7 +356,7 @@ void main()
 			continue;
 		}
 
-		float shadow_compoment = get_shadow_component(i);
+		float shadow_compoment = get_shadow_component(u_light_shadow_id[i]);
 
 		if (shadow_compoment == 0) {
 			continue;

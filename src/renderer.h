@@ -28,6 +28,8 @@ namespace GTR {
 		float light_max_distance[MAX_LIGHT_NUM];
 		float light_intensities[MAX_LIGHT_NUM];
 
+		int light_shadow_id[MAX_LIGHT_NUM];
+
 		// Spot light data
 		float  light_cone_angle[MAX_LIGHT_NUM];
 		float  light_cone_decay[MAX_LIGHT_NUM];
@@ -40,6 +42,7 @@ namespace GTR {
 
 		inline void add_light( LightEntity *light) {
 			if (light_count < MAX_LIGHT_NUM) {
+				light_shadow_id[light_count] = light->light_id;
 				light_type[light_count] = light->light_type;
 				light_positions[light_count] = light->get_translation();
 				light_color[light_count] = light->color;
@@ -93,7 +96,8 @@ namespace GTR {
 
 		std::vector<sDrawCall> _opaque_objects;
 		std::vector<sDrawCall> _translucent_objects;
-		std::vector<LightEntity*> _scene_lights;
+		std::vector<LightEntity*> _scene_non_directonal_lights;
+		std::vector<LightEntity*> _scene_directional_lights;
 
 		ShadowRenderer shadowmap_renderer;
 

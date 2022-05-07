@@ -52,7 +52,14 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 			}
 		} else if (ent->entity_type == LIGHT) {
 			LightEntity* curr_light = (LightEntity*)ent;
-			_scene_lights.push_back(curr_light);
+
+			if (curr_light->light_type == DIRECTIONAL_LIGHT) {
+				_scene_directional_lights.push_back(curr_light);
+			}
+			else {
+				_scene_non_directonal_lights.push_back(curr_light);
+			}
+			
 			uint16_t light_id = 0;
 			if (curr_light->light_type == DIRECTIONAL_LIGHT || curr_light->light_type == SPOT_LIGHT) {
 				light_id = shadowmap_renderer.add_light(curr_light);
@@ -68,8 +75,8 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	scene_prefabs.clear();
 
 	// Iterate all the lights on the scene
-	for (uint16_t light_i = 0; light_i < _scene_lights.size(); light_i++) {
-		LightEntity *curr_light =  _scene_lights[light_i];
+	for (uint16_t light_i = 0; light_i < _scene_non_directonal_lights.size(); light_i++) {
+		LightEntity *curr_light = _scene_non_directonal_lights[light_i];
 
 		// Check if the opaque object is in range of the light
 		for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
@@ -86,7 +93,23 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 		}
 	}
 
-	/**/
+	for (uint16_t light_i = 0; light_i < _scene_directional_lights.size(); light_i++) {
+		LightEntity* curr_light = _scene_directional_lights[light_i];
+
+		// Check if the opaque object is in range of the light
+		for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
+			if (curr_light->is_in_range(_opaque_objects[i].aabb)) {
+				_opaque_objects[i].add_light(curr_light);
+			}
+		}
+
+		// Check if the translucent object is in range of the light
+		for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
+			if (curr_light->is_in_range(_translucent_objects[i].aabb)) {
+				_translucent_objects[i].add_light(curr_light);
+			}
+		}
+	}
 
 	// Render shadows
 	shadowmap_renderer.render_scene_shadows();
@@ -95,23 +118,22 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	std::sort(_opaque_objects.begin(), _opaque_objects.end(), opaque_draw_call_distance_comp);
 	std::sort(_translucent_objects.begin(), _translucent_objects.end(), translucent_draw_call_distance_comp);
 
-	/**
 	switch(current_pipeline) {
 	case FORWARD:
 		forwardRenderScene(scene);
 		break;
 	case DEFERRED:
-		
+		deferredRenderScene(scene);
 		break;
 	default:
 		break;
-	}*/
-
-	deferredRenderScene(scene);
+	}
+	
 
 	_opaque_objects.clear();
 	_translucent_objects.clear();
-	_scene_lights.clear();
+	_scene_directional_lights.clear();
+	_scene_non_directonal_lights.clear();
 
 	// Show the shadowmap
 	if (show_shadowmap) {
@@ -293,8 +315,16 @@ void Renderer::add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node
 		}
 
 		// Test if the objects is on the light's frustum
-		for (uint16_t light_i = 0; light_i < _scene_lights.size(); light_i++) {
-			LightEntity* curr_light = _scene_lights[light_i];
+		for (uint16_t light_i = 0; light_i < _scene_non_directonal_lights.size(); light_i++) {
+			LightEntity* curr_light = _scene_non_directonal_lights[light_i];
+
+			if (curr_light->is_in_light_frustum(world_bounding)) {
+				shadowmap_renderer.add_instance_to_light(curr_light->light_id, node->mesh, node_model);
+			}
+		}
+
+		for (uint16_t light_i = 0; light_i < _scene_directional_lights.size(); light_i++) {
+			LightEntity* curr_light = _scene_directional_lights[light_i];
 
 			if (curr_light->is_in_light_frustum(world_bounding)) {
 				shadowmap_renderer.add_instance_to_light(curr_light->light_id, node->mesh, node_model);

@@ -16,12 +16,12 @@ void GTR::Renderer::forwardRenderScene(const Scene *scene) {
 	else {
 		// First, render the opaque object
 		for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
-			forwardSingleRenderDrawCall(_opaque_objects[i], scene);
+			forwardMultiRenderDrawCall(_opaque_objects[i], scene);
 		}
 
 		// then, render the translucnet, and masked objects
 		for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
-			forwardSingleRenderDrawCall(_translucent_objects[i], scene);
+			forwardMultiRenderDrawCall(_translucent_objects[i], scene);
 		}
 	}
 }
@@ -67,6 +67,7 @@ inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_cal
 	shader->setUniform3Array("u_light_pos", (float*)draw_call.light_positions, draw_call.light_count);
 	shader->setUniform3Array("u_light_color", (float*)draw_call.light_color, draw_call.light_count);
 	shader->setUniform1Array("u_light_type", (int*)draw_call.light_type, draw_call.light_count);
+	shader->setUniform1Array("u_light_shadow_id", (int*)draw_call.light_shadow_id, draw_call.light_count);
 	shader->setUniform1Array("u_light_max_dist", (float*)draw_call.light_max_distance, draw_call.light_count);
 	shader->setUniform1Array("u_light_intensities", draw_call.light_intensities, draw_call.light_count);
 	shader->setUniform("u_num_lights", draw_call.light_count);
@@ -172,7 +173,7 @@ inline void GTR::Renderer::forwardMultiRenderDrawCall(const sDrawCall& draw_call
 		shader->setUniform("u_light_type", draw_call.light_type[light_id]);
 		shader->setUniform("u_light_max_dist", draw_call.light_max_distance[light_id]);
 		shader->setUniform("u_light_intensities", draw_call.light_intensities[light_id]);
-		shader->setUniform("u_light_id", light_id);
+		shader->setUniform("u_light_id", draw_call.light_shadow_id[light_id]);
 
 		// Spotlight data of the lights
 		shader->setUniform("u_light_direction", draw_call.light_direction[light_id]);
