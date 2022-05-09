@@ -458,7 +458,7 @@ void main()
 
 	o_frag_albedo = color;
 	o_frag_normal = vec4(texture( u_normal_tex, v_uv).rgb, occlusion_comp);
-	if(length(o_frag_normal) <= 0.0) {
+	if(length(o_frag_normal.rgb) == 0.0) {
 		o_frag_normal = vec4(normalize(v_normal), occlusion_comp);
 	}
 	

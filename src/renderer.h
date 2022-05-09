@@ -111,7 +111,7 @@ namespace GTR {
 
 		ShadowRenderer shadowmap_renderer;
 
-		eRenderPipe current_pipeline = FORWARD;
+		eRenderPipe current_pipeline = DEFERRED;
 
 		// Debgging toggles for forward rendering
 		bool use_single_pass = true;
