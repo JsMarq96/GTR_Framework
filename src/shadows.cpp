@@ -11,7 +11,7 @@ void GTR::ShadowRenderer::clean() {
 
 void GTR::ShadowRenderer::render_light(sShadowDrawCall& draw_call, Matrix44 &vp_matrix) {
 	//define locals to simplify coding
-	Shader* shader = Shader::Get("flat");
+	Shader* shader = Shader::Get("shadow_flat");
 
 	shader->enable();
 
@@ -21,6 +21,8 @@ void GTR::ShadowRenderer::render_light(sShadowDrawCall& draw_call, Matrix44 &vp_
 	for (uint16_t i = 0; i < draw_call.obj_cout; i++) {
 		//upload uniforms
 		shader->setUniform("u_viewprojection", vp_matrix);
+		shader->setUniform("u_texture", draw_call.albedo_textures[i]);
+		shader->setUniform("u_alpha_cutoff", draw_call.alpha_cutoffs[i]);
 		shader->setUniform("u_model", draw_call.models[i]);
 
 		//do the draw call that renders the mesh into the screen
@@ -37,7 +39,7 @@ void GTR::ShadowRenderer::render_light(sShadowDrawCall& draw_call, Matrix44 &vp_
 	glDisable(GL_BLEND);
 }
 
-void GTR::ShadowRenderer::render_scene_shadows() {
+void GTR::ShadowRenderer::render_scene_shadows(Camera *cam) {
 	// Disable color writing
 	glColorMask(false, false, false, false);
 
@@ -49,14 +51,22 @@ void GTR::ShadowRenderer::render_scene_shadows() {
 	for (light_projection_count = 0; light_projection_count < draw_call_stack.size(); light_projection_count++) {
 		sShadowDrawCall& draw_call = draw_call_stack[light_projection_count];
 
+		Camera light_cam;
 		// Set the view-projection
 		Matrix44& light_model = draw_call.light->get_model();
-		vec3 light_pos = light_model.getTranslation();
-		Matrix44 projection;
-		light_view_projections[light_projection_count].lookAt(light_pos, light_model * vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 1.0f, 0.0f));
+		vec3 light_pos;
+		light_pos = light_model.getTranslation();
+		/*if (draw_call.light->light_type == DIRECTIONAL_LIGHT) {
+			light_pos = cam->eye + vec3(0.0f, 30.0f, 0.0f);
+		} else {
+			
+		}*/
+		Matrix44 projection, view;
+		
+		light_cam.lookAt(light_pos, light_model * vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 1.0f, 0.0f));
 
 		if (draw_call.light->light_type == SPOT_LIGHT) {
-			projection.perspective(draw_call.light->cone_angle,
+			light_cam.setPerspective(draw_call.light->cone_angle,
 				1.0f,
 				0.1f,
 				draw_call.light->max_distance);
@@ -64,15 +74,15 @@ void GTR::ShadowRenderer::render_scene_shadows() {
 		else if (draw_call.light->light_type == DIRECTIONAL_LIGHT) {
 			
 			float half_area = draw_call.light->area_size / 2.0f;
-			projection.ortho(-half_area,
-				half_area,
+			light_cam.setOrthographic(-half_area,
 				half_area,
 				-half_area,
+				half_area,
 				0.1f,
 				draw_call.light->max_distance);
 		}
 
-		light_view_projections[light_projection_count] = light_view_projections[light_projection_count] * projection;
+		light_view_projections[light_projection_count] = light_cam.viewprojection_matrix;
 
 
 		// For the shadomap atlas

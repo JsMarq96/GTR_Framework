@@ -86,7 +86,9 @@ inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_cal
 
 	// Material properties
 	shader->setUniform("u_color", draw_call.material->color);
-	bind_textures(draw_call.material, shader);
+	int enabled_texteres = bind_textures(draw_call.material, shader);
+
+	shader->setUniform("u_enabled_texteres", enabled_texteres);
 
 	// Set the shadowmap
 	shadowmap_renderer.bind_shadows(shader);

@@ -155,7 +155,7 @@ namespace GTR {
 
 			
 			//if bounding box is inside the light frustum then the object is probably visible
-			return light_cam.testBoxInFrustum(world_bbox.center, world_bbox.halfsize);
+			return light_cam.testBoxInFrustum(world_bbox.center, world_bbox.halfsize + vec3(0.1f, 0.1f, 0.1f));
 		}
 
 		inline vec3 get_translation() {

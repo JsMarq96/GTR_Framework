@@ -94,6 +94,14 @@ namespace GTR {
 			DEFERRED_DEBUG_SIZE
 		};
 
+		enum eTextMaterials : int {
+			ALBEDO_MAT = 1,
+			NORMAL_MAT = 10,
+			EMMISIVE_MAT = 100,
+			MET_ROUGHT_MAT = 1000,
+			OCCLUSION_MAT = 10000
+		};
+
 		FBO* deferred_gbuffer = NULL;
 
 		std::vector<sDrawCall> _opaque_objects;
@@ -103,7 +111,7 @@ namespace GTR {
 
 		ShadowRenderer shadowmap_renderer;
 
-		eRenderPipe current_pipeline = DEFERRED;
+		eRenderPipe current_pipeline = FORWARD;
 
 		// Debgging toggles for forward rendering
 		bool use_single_pass = true;
@@ -112,6 +120,7 @@ namespace GTR {
 		eDeferredDebugOutput deferred_output = RESULT;
 
 		bool show_shadowmap = false;
+		bool liniearize_shadowmap_vis = false;
 
 		Camera* camera;
 
@@ -154,7 +163,8 @@ namespace GTR {
 		// =======================
 		// INLINE FUNCTIONS
 		// =======================
-		inline void bind_textures(const Material* material, Shader* shader) {
+		inline int bind_textures(const Material* material, Shader* shader) {
+			int enabled_textures = 0;
 			Texture* albedo_texture = NULL, * emmisive_texture = NULL, * mr_texture = NULL, * normal_texture = NULL;
 			Texture* occlusion_texture = NULL;
 
@@ -164,22 +174,42 @@ namespace GTR {
 			normal_texture = material->normal_texture.texture;
 			occlusion_texture = material->occlusion_texture.texture;
 
-			if (albedo_texture == NULL)
+			if (albedo_texture == NULL) {
+				enabled_textures += eTextMaterials::ALBEDO_MAT;
 				albedo_texture = Texture::getWhiteTexture(); //a 1x1 white texture
-			if (emmisive_texture == NULL)
-				emmisive_texture = Texture::getBlackTexture(); //a 1x1 black texture
-			if (mr_texture == NULL)
-				mr_texture = Texture::getWhiteTexture(); //a 1x1 white texture
-			if (normal_texture == NULL)
-				normal_texture = Texture::getBlackTexture(); //a 1x1 black texture
-			if (occlusion_texture == NULL)
-				occlusion_texture = Texture::getWhiteTexture(); //a 1x1 black texture
+			}
+				
 
+			if (emmisive_texture == NULL) {
+				enabled_textures += eTextMaterials::EMMISIVE_MAT;
+				emmisive_texture = Texture::getBlackTexture(); //a 1x1 black texture
+			}
+				
+
+			if (mr_texture == NULL) {
+				enabled_textures += eTextMaterials::MET_ROUGHT_MAT;
+				mr_texture = Texture::getWhiteTexture(); //a 1x1 white texture
+			}
+				
+
+			if (normal_texture == NULL) {
+				enabled_textures += eTextMaterials::NORMAL_MAT;
+				normal_texture = Texture::getBlackTexture(); //a 1x1 black texture
+			}
+				
+
+			if (occlusion_texture == NULL) {
+				enabled_textures += eTextMaterials::OCCLUSION_MAT;
+				occlusion_texture = Texture::getWhiteTexture(); //a 1x1 black texture
+			}
+				
 			shader->setUniform("u_texture", albedo_texture, 0);
 			shader->setUniform("u_emmisive_tex", emmisive_texture, 1);
 			shader->setUniform("u_met_rough_tex", mr_texture, 2);
 			shader->setUniform("u_normal_tex", normal_texture, 3);
 			shader->setUniform("u_occlusion_tex", occlusion_texture, 4);
+
+			return enabled_textures;
 		};
 
 
@@ -187,6 +217,7 @@ namespace GTR {
 #ifndef SKIP_IMGUI
 			shadowmap_renderer.renderInMenu();
 			ImGui::Checkbox("Show shadowmap", &show_shadowmap);
+			ImGui::Checkbox("Linearize shadomap visualization", &liniearize_shadowmap_vis);
 
 			const char* rend_pipe[2] = { "FORWARD", "DEFERRED"};
 			const char* deferred_output_labels[DEFERRED_DEBUG_SIZE] = {"Final Result", "Color", "Normal", "Materials", "Depth", "World pos."};

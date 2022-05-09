@@ -78,6 +78,36 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 	float t = getTime();
 	shader_pass->setUniform("u_time", t);
 
+	vec3  light_positions[MAX_LIGHT_NUM];
+	vec3  light_color[MAX_LIGHT_NUM];
+	float light_max_distance[MAX_LIGHT_NUM];
+	float light_intensities[MAX_LIGHT_NUM];
+	vec3 light_direction[MAX_LIGHT_NUM];
+
+	int light_shadow_id[MAX_LIGHT_NUM];
+	uint16_t light_count = 0;
+
+	for (; light_count < _scene_directional_lights.size(); light_count++) {
+		LightEntity* light_ent = _scene_directional_lights[light_count];
+
+		light_positions[light_count] = light_ent->get_translation();
+		light_color[light_count] = light_ent->color;
+		light_max_distance[light_count] = light_ent->max_distance;
+		light_intensities[light_count] = light_ent->intensity;
+		light_shadow_id[light_count] = light_ent->light_id;
+		light_direction[light_count] = light_ent->get_model().frontVector() * -1.0f;
+		//std::cout << light_ent->light_id << std::endl;
+	}
+
+	shader_pass->setUniform("u_ambient_light", scene->ambient_light);
+	shader_pass->setUniform3Array("u_light_pos", (float*)light_positions, light_count);
+	shader_pass->setUniform3Array("u_light_color", (float*)light_color, light_count);
+	shader_pass->setUniform1Array("u_light_shadow_id", (int*)light_shadow_id, light_count);
+	shader_pass->setUniform1Array("u_light_max_dist", (float*)light_max_distance, light_count);
+	shader_pass->setUniform1Array("u_light_intensities", light_intensities, light_count);
+	shader_pass->setUniform3Array("u_light_direction", (float*)light_direction, light_count);
+	shader_pass->setUniform("u_num_lights", light_count);
+
 	shadowmap_renderer.bind_shadows(shader_pass);
 
 	Mesh* quad = Mesh::getQuad();

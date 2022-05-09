@@ -112,7 +112,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	}
 
 	// Render shadows
-	shadowmap_renderer.render_scene_shadows();
+	shadowmap_renderer.render_scene_shadows(camera);
 
 	// Order the opaque & translucent
 	std::sort(_opaque_objects.begin(), _opaque_objects.end(), opaque_draw_call_distance_comp);
@@ -137,10 +137,11 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 
 	// Show the shadowmap
 	if (show_shadowmap) {
-		glViewport(0, 0, 256, 256);
+		glViewport(0, 0, 356, 356);
 		Shader* shad = Shader::getDefaultShader("depth");
 		shad->enable();
-		shad->setUniform("u_camera_nearfar", vec2(0.1, 10000.0f));
+		shad->setUniform("u_camera_nearfar", vec2(0.1, 1000.0f));
+		shad->setUniform("u_linearize", (liniearize_shadowmap_vis) ? 0 : 1);
 		shadowmap_renderer.shadowmap->depth_texture->toViewport(shad);
 		glViewport(0, 0, Application::instance->window_width, Application::instance->window_height);
 	}
@@ -319,7 +320,7 @@ void Renderer::add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node
 			LightEntity* curr_light = _scene_non_directonal_lights[light_i];
 
 			if (curr_light->is_in_light_frustum(world_bounding)) {
-				shadowmap_renderer.add_instance_to_light(curr_light->light_id, node->mesh, node_model);
+				shadowmap_renderer.add_instance_to_light(curr_light->light_id, node->mesh, node->material->color_texture.texture, node->material->alpha_cutoff, node_model);
 			}
 		}
 
@@ -327,7 +328,7 @@ void Renderer::add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node
 			LightEntity* curr_light = _scene_directional_lights[light_i];
 
 			if (curr_light->is_in_light_frustum(world_bounding)) {
-				shadowmap_renderer.add_instance_to_light(curr_light->light_id, node->mesh, node_model);
+				shadowmap_renderer.add_instance_to_light(curr_light->light_id, node->mesh, node->material->color_texture.texture, node->material->alpha_cutoff, node_model);
 			}
 		}
 	}

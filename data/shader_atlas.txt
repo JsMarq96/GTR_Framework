@@ -1,5 +1,6 @@
 //example of some shaders compiled
 flat basic.vs flat.fs
+shadow_flat basic.vs shadow_flat.fs
 texture basic.vs texture.fs
 depth quad.vs depth.fs
 multi basic.vs multi.fs
@@ -14,7 +15,7 @@ deferred_world_pos quad.vs deferred_world_pos.fs
 const vec3 TILES_SIZES[MAX_SHADOWS] = vec3[](
 	vec3(0.0, 0.5, 0.5), // Tile 0
 	vec3(0.0, 0.0, 0.5), // 1
-	vec3(0.5, 0.0, 0.25), // 2
+	vec3(0.5, 0.0, 0.5), // 2
 	vec3(0.5, 0.25, 0.25), // 3
 	vec3(0.75, 0.0, 0.25), // 4
 	vec3(0.75, 0.25, 0.25), // 5
@@ -69,6 +70,41 @@ vec3 perturbNormal(vec3 N, vec3 world_pos, vec2 uv) {
 	normal_pixel = normal_pixel * 255.0/127.0 - 128.0/127.0;
 	mat3 TBN = cotangentFrame(N, world_pos, uv);
 	return normalize(TBN * normal_pixel);
+}
+
+\fragment_materials
+
+struct sFragmentMaterial {
+	vec3 albedo;
+	vec3 normal;
+	float alpha;
+	vec3 emmisive;
+	float metallic;
+	float roughnes;
+	float occlusion;
+};
+
+#include "normal_functions"
+
+sFragmentMaterial get_fragment_material(vec2 uv) {
+	vec4 color = texture(u_texture, uv).rgba;
+	vec4 met_rough = texture(u_met_rough_tex, uv).rgba;
+	vec3 n = texture(u_normal_tex, uv).rgb;
+
+	sFragmentMaterial frag_mat;
+	frag_mat.albedo = color.rgb * u_color.rgb;
+	frag_mat.alpha = color.a;
+	frag_mat.normal = normalize(v_normal);
+	frag_mat.emmisive = texture(u_emmisive_tex, uv).rgb;
+	frag_mat.occlusion = texture(u_occlusion_tex, uv).r;
+	frag_mat.metallic = met_rough.r;
+	frag_mat.roughnes = met_rough.g;
+
+	if (length(n) > 0.0) { // If normal is enabled
+		frag_mat.normal = texture2D(u_normal_tex, uv).xyz;	
+	}
+
+	return frag_mat;
 }
 
 \basic.vs
@@ -144,6 +180,26 @@ void main()
 	FragColor = u_color;
 }
 
+\shadow_flat.fs
+
+#version 330 core
+
+uniform vec4 u_color;
+uniform sampler2D u_texture;
+uniform float u_alpha_cutoff;
+
+in vec2 v_uv;
+
+out vec4 FragColor;
+
+void main()
+{
+	if (texture(u_texture, v_uv).a < u_alpha_cutoff) {
+		discard;
+	}
+	FragColor = u_color;
+}
+
 \multi_phong.fs
 
 #version 330 core
@@ -204,7 +260,10 @@ void main()
 
 	vec3 light_component = vec3(0.0);
 
-	vec3 N = perturbNormal(normalize(v_normal), v_world_position, v_uv);
+	vec3 N = normalize(v_normal);
+	if (length(texture( u_normal_tex, v_uv ).rgb) > 0.0) {
+		N = perturbNormal(normalize(v_normal), v_world_position, v_uv);
+	}
 
 	float shadow_compoment = get_shadow_component(u_light_id, v_world_position);
 
@@ -257,6 +316,9 @@ in vec2 v_uv;
 in vec4 v_color;
 in vec2 v_frag_shadow_uv;
 
+uniform float u_time;
+uniform float u_alpha_cutoff;
+
 // Material data
 uniform vec4 u_color;
 uniform sampler2D u_texture;
@@ -264,9 +326,6 @@ uniform sampler2D u_emmisive_tex;
 uniform sampler2D u_met_rough_tex;
 uniform sampler2D u_normal_tex;
 uniform sampler2D u_occlusion_tex;
-
-uniform float u_time;
-uniform float u_alpha_cutoff;
 
 // Light data
 uniform vec3 u_ambient_light;
@@ -293,7 +352,7 @@ uniform vec3 u_light_direction[MAX_LIGHT];
 out vec4 FragColor;
 #include "depth_functions"
 
-#include "normal_functions"
+#include "fragment_materials"
 
 void main()
 {
@@ -304,9 +363,12 @@ void main()
 	if(color.a < u_alpha_cutoff)
 		discard;
 
-	vec3 light_component = vec3(0.0);
+	vec3 N = normalize(v_normal);
+	if (length(texture( u_normal_tex, v_uv ).rgb) > 0.0) {
+		N = perturbNormal(normalize(v_normal), v_world_position, v_uv);
+	}
 
-	vec3 N = perturbNormal(normalize(v_normal), v_world_position, v_uv);
+	vec3 light_component = vec3(0.0);
 
 	for(int i = 0; i < MAX_LIGHT; i++) {
 		if (i >= u_num_lights) {
@@ -322,7 +384,7 @@ void main()
 		vec3 L = vec3(0.0);
 		vec3 D = normalize(u_light_direction[i]);
 
-		if (u_light_type[i] == 1) { // Point light
+		if (u_light_type[i] == 1) { // Directional light
 			L = normalize(u_light_direction[i]);
 		} else {
 			L = normalize(u_light_pos[i] - v_world_position);
@@ -330,6 +392,7 @@ void main()
 		
 		float n_dot_l = max(dot(L, N), 0.0);
 		float l_dot_d = dot(D, L);
+
 		// Quadratic light attenuation
 		float light_attenuation = u_light_max_dist[i] - length(u_light_pos[i] - v_world_position);
 		light_attenuation = max(light_attenuation / u_light_max_dist[i], 0.0); 
@@ -340,6 +403,8 @@ void main()
 				// If the fragment to light direction is inside the angle of the spotlight
 				light_component += (pow(l_dot_d, u_light_cone_decay[i]) * n_dot_l * u_light_color[i]) * light_attenuation * u_light_intensities[i];
 			}
+		} else if (u_light_type[i] == 1) { 
+			light_component += (n_dot_l * u_light_color[i]) * u_light_intensities[i];
 		} else { // For directional & spotlight
 			light_component += (n_dot_l * u_light_color[i]) * light_attenuation * u_light_intensities[i];
 		}
@@ -348,9 +413,7 @@ void main()
 	vec3 emmisive_comp = texture( u_emmisive_tex, v_uv ).rgb;
 	float occlusion_comp = texture( u_occlusion_tex, v_uv ).r;
 
-	color.rgb = color.rgb * ((light_component + emmisive_comp) + (occlusion_comp * u_ambient_light));
-
-	FragColor = color;
+	FragColor = vec4(color.rgb * ((light_component + emmisive_comp) + (occlusion_comp * u_ambient_light)), 1.0);
 }
 
 \deferred_plain_opaque.fs
@@ -394,8 +457,12 @@ void main()
 	float occlusion_comp = texture( u_occlusion_tex, v_uv ).r;
 
 	o_frag_albedo = color;
-	o_frag_normal = vec4(texture( u_normal_tex, v_uv).rgb, 1.0);
-	o_frag_materials = vec4(texture( u_met_rough_tex, v_uv).rg, occlusion_comp, 0.0);
+	o_frag_normal = vec4(texture( u_normal_tex, v_uv).rgb, occlusion_comp);
+	if(length(o_frag_normal) <= 0.0) {
+		o_frag_normal = vec4(normalize(v_normal), occlusion_comp);
+	}
+	
+	o_frag_materials = vec4(texture( u_met_rough_tex, v_uv).rg, 0.0, 0.0);
 }
 
 \texture.fs
@@ -467,6 +534,7 @@ void main()
 
 uniform vec2 u_camera_nearfar;
 uniform sampler2D u_texture; //depth map
+uniform int u_linearize;
 in vec2 v_uv;
 out vec4 FragColor;
 
@@ -476,6 +544,9 @@ void main()
 	float f = u_camera_nearfar.y;
 	float z = texture2D(u_texture,v_uv).x;
 	float color = n * (z + 1.0) / (f + n - z * (f - n));
+	if (u_linearize == 1.0) {
+		color = z;
+	}
 	FragColor = vec4(color);
 }
 
@@ -514,6 +585,17 @@ uniform sampler2D u_normal_occ_tex;
 uniform sampler2D u_met_rough_tex;
 uniform sampler2D u_depth_tex;
 
+// Light uniforms
+uniform vec3 u_ambient_light;
+const int MAX_LIGHT = 7;
+uniform int u_light_shadow_id[MAX_LIGHT];
+uniform vec3 u_light_pos[MAX_LIGHT];
+uniform vec3 u_light_color[MAX_LIGHT];
+uniform float u_light_max_dist[MAX_LIGHT];
+uniform float u_light_intensities[MAX_LIGHT];
+uniform vec3 u_light_direction[MAX_LIGHT];
+uniform int u_num_lights;
+
 // Shadows uniforms
 const int MAX_SHADOWS = 7;
 uniform sampler2D u_shadow_map;
@@ -538,10 +620,46 @@ vec3 get_world_position_from_depth() {
 
 void main()
 {
-	vec3 pos = get_world_position_from_depth();
+	vec3 world_pos = get_world_position_from_depth();
 
-	float shadow_compoment = get_shadow_component(0, pos);
-	FragColor = vec4(texture2D(u_albedo_tex, v_uv).rgb * texture2D(u_normal_occ_tex, v_uv).a * shadow_compoment, 1.0);
+	vec4 color = texture( u_albedo_tex, v_uv );
+	vec4 normal_occ = texture2D(u_normal_occ_tex, v_uv);
+	float occlusion_comp = normal_occ.a;
+
+	vec3 light_component = vec3(0.0);
+
+	vec3 N = normal_occ.rgb * 2.0 - 1.0;
+
+	// Only for directiona lights
+	for(int i = 0; i < MAX_LIGHT; i++) {
+		if (i >= u_num_lights) {
+			continue;
+		}
+
+		float shadow_compoment = get_shadow_component(u_light_shadow_id[i], world_pos);
+
+		if (shadow_compoment == 0) {
+			continue;
+		}
+
+		vec3 L =  normalize(u_light_direction[i]);
+		
+		float n_dot_l = max(dot(L, N), 0.0);
+		// Quadratic light attenuation
+		float light_attenuation = u_light_max_dist[i] - length(u_light_pos[i] - world_pos);
+		light_attenuation = max(light_attenuation / u_light_max_dist[i], 0.0); 
+		light_attenuation *= light_attenuation;
+
+		
+		light_component += (n_dot_l * u_light_color[i]) * light_attenuation * u_light_intensities[i];
+	}
+
+	//vec3 emmisive_comp = texture( u_emmisive_tex, v_uv ).rgb;
+
+	//color.rgb = color.rgb * ((light_component + emmisive_comp) + (occlusion_comp * u_ambient_light));
+	color.rgb = color.rgb * ((light_component) + (occlusion_comp * u_ambient_light));
+
+	FragColor = color;
 }
 
 \instanced.vs
