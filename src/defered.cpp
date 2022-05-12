@@ -19,6 +19,82 @@ void GTR::Renderer::_init_deferred_renderer() {
 		true);
 }
 
+
+inline void GTR::Renderer::_forwardOpacyRenderDrawCall(const sDrawCall& draw_call, const Scene* scene) {
+	//in case there is nothing to do
+	if (!draw_call.mesh || !draw_call.mesh->getNumVertices() || !draw_call.material)
+		return;
+	assert(glGetError() == GL_NO_ERROR);
+
+	//define locals to simplify coding
+	Shader* shader = NULL;
+
+	//select the blending
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	//select if render both sides of the triangles
+	if (draw_call.material->two_sided)
+		glDisable(GL_CULL_FACE);
+	else
+		glEnable(GL_CULL_FACE);
+	assert(glGetError() == GL_NO_ERROR);
+
+	//chose a shader
+	shader = Shader::Get("deferred_plane_traslucent");
+
+	assert(glGetError() == GL_NO_ERROR);
+
+	//no shader? then nothing to render
+	if (!shader)
+		return;
+	shader->enable();
+
+	// Upload light data
+	// Common data of the lights
+	shader->setUniform("u_ambient_light", scene->ambient_light);
+	shader->setUniform3Array("u_light_pos", (float*)draw_call.light_positions, draw_call.light_count);
+	shader->setUniform3Array("u_light_color", (float*)draw_call.light_color, draw_call.light_count);
+	shader->setUniform1Array("u_light_type", (int*)draw_call.light_type, draw_call.light_count);
+	shader->setUniform1Array("u_light_shadow_id", (int*)draw_call.light_shadow_id, draw_call.light_count);
+	shader->setUniform1Array("u_light_max_dist", (float*)draw_call.light_max_distance, draw_call.light_count);
+	shader->setUniform1Array("u_light_intensities", draw_call.light_intensities, draw_call.light_count);
+	shader->setUniform("u_num_lights", draw_call.light_count);
+
+	// Spotlight data of the lights
+	shader->setUniform3Array("u_light_direction", (float*)draw_call.light_direction, draw_call.light_count);
+	shader->setUniform1Array("u_light_cone_angle", (float*)draw_call.light_cone_angle, draw_call.light_count);
+	shader->setUniform1Array("u_light_cone_decay", (float*)draw_call.light_cone_decay, draw_call.light_count);
+
+	//upload uniforms
+	shader->setUniform("u_viewprojection", draw_call.camera->viewprojection_matrix);
+	shader->setUniform("u_camera_position", draw_call.camera->eye);
+	shader->setUniform("u_model", draw_call.model);
+	float t = getTime();
+	shader->setUniform("u_time", t);
+
+	// Material properties
+	shader->setUniform("u_color", draw_call.material->color);
+	int enabled_texteres = bind_textures(draw_call.material, shader);
+
+	shader->setUniform("u_enabled_texteres", enabled_texteres);
+
+	// Set the shadowmap
+	shadowmap_renderer.bind_shadows(shader);
+
+	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
+	shader->setUniform("u_alpha_cutoff", draw_call.material->alpha_mode == GTR::eAlphaMode::MASK ? draw_call.material->alpha_cutoff : 0);
+
+	//do the draw call that renders the mesh into the screen
+	draw_call.mesh->render(GL_TRIANGLES);
+
+	//disable shader
+	shader->disable();
+
+	//set the render state as it was before to avoid problems with future renders
+	glDisable(GL_BLEND);
+}
+
 void GTR::Renderer::deferredRenderScene(const Scene* scene) {
 	deferred_gbuffer->bind();
 
@@ -47,6 +123,11 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene) {
 	for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
 		renderDeferredPlainDrawCall(_opaque_objects[i], scene);
 	}
+
+	for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
+		_forwardOpacyRenderDrawCall(_translucent_objects[i], scene);
+	}
+
 	deferred_gbuffer->unbind();
 
 	switch (deferred_output) {
@@ -142,7 +223,11 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 
+
 	// TODO: Render point lights
+	for (uint16_t i = 0; i < _scene_non_directonal_lights.size(); i++) {
+
+	}
 
 	final_illumination_fbo->unbind();
 	final_illumination_fbo->color_textures[0]->toViewport();
