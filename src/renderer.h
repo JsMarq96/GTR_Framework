@@ -133,7 +133,8 @@ namespace GTR {
 		void init();
 		void forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Scene *scene);
 		void forwardMultiRenderDrawCall(const sDrawCall& draw_call, const Scene* scene);
-		void _forwardOpacyRenderDrawCall(const sDrawCall& draw_call, const Scene* scene);
+		void forwardOpacyRenderDrawCall(const sDrawCall& draw_call, const Scene* scene);
+		void renderLightVolume(LightEntity *light);
 
 		void forwardRenderScene(const Scene* scene);
 		void deferredRenderScene(const Scene* scene);
