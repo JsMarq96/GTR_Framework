@@ -91,6 +91,7 @@ namespace GTR {
 			MATERIAL,
 			DEPTH,
 			WORLD_POS,
+			EMMISIVE,
 			DEFERRED_DEBUG_SIZE
 		};
 
@@ -103,6 +104,7 @@ namespace GTR {
 		};
 
 		FBO* deferred_gbuffer = NULL;
+		FBO* final_illumination_fbo = NULL;
 
 		std::vector<sDrawCall> _opaque_objects;
 		std::vector<sDrawCall> _translucent_objects;
@@ -220,7 +222,7 @@ namespace GTR {
 			ImGui::Checkbox("Linearize shadomap visualization", &liniearize_shadowmap_vis);
 
 			const char* rend_pipe[2] = { "FORWARD", "DEFERRED"};
-			const char* deferred_output_labels[DEFERRED_DEBUG_SIZE] = {"Final Result", "Color", "Normal", "Materials", "Depth", "World pos."};
+			const char* deferred_output_labels[DEFERRED_DEBUG_SIZE] = {"Final Result", "Color", "Normal", "Materials", "Emmisive", "Depth", "World pos."};
 			ImGui::Combo("Rendering pipeline", (int*) &current_pipeline, rend_pipe, IM_ARRAYSIZE(rend_pipe));
 
 			switch (current_pipeline) {

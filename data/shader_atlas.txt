@@ -441,6 +441,9 @@ uniform float u_alpha_cutoff;
 layout(location = 0) out vec4 o_frag_albedo;
 layout(location = 1) out vec4 o_frag_normal;
 layout(location = 2) out vec4 o_frag_materials;
+layout(location = 3) out vec3 o_emmisive_materials;
+
+#include "normal_functions"
 
 void main()
 {
@@ -457,12 +460,15 @@ void main()
 	float occlusion_comp = texture( u_occlusion_tex, v_uv ).r;
 
 	o_frag_albedo = color;
-	o_frag_normal = vec4(texture( u_normal_tex, v_uv).rgb, occlusion_comp);
-	if(length(o_frag_normal.rgb) == 0.0) {
+	vec3 text_N = texture( u_normal_tex, v_uv).rgb;
+	if(length(text_N.rgb) == 0.0) {
 		o_frag_normal = vec4(normalize(v_normal), occlusion_comp);
+	} else {
+		o_frag_normal = vec4(perturbNormal(normalize(v_normal), v_world_position, v_uv), occlusion_comp);
 	}
 	
 	o_frag_materials = vec4(texture( u_met_rough_tex, v_uv).rg, 0.0, 0.0);
+	o_emmisive_materials = texture(u_emmisive_tex, v_uv).rgb;
 }
 
 \texture.fs

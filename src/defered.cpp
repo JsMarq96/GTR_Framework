@@ -4,11 +4,18 @@
 
 void GTR::Renderer::_init_deferred_renderer() {
 	deferred_gbuffer = new FBO();
+	final_illumination_fbo = new FBO();
 
 	deferred_gbuffer->create(Application::instance->window_width, Application::instance->window_height, 
-		3,
+		4,
 		GL_RGBA, 
 		GL_UNSIGNED_BYTE,  // Enought..?
+		true);
+
+	final_illumination_fbo->create(Application::instance->window_width, Application::instance->window_height,
+		1,
+		GL_RGBA,
+		GL_FLOAT,
 		true);
 }
 
@@ -25,6 +32,10 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene) {
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	deferred_gbuffer->enableSingleBuffer(2);
+	glClearColor(0.1, 0.1, 0.1, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	deferred_gbuffer->enableSingleBuffer(3);
 	glClearColor(0.1, 0.1, 0.1, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -52,6 +63,9 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene) {
 	case MATERIAL:
 		deferred_gbuffer->color_textures[2]->toViewport();
 		break;
+	case EMMISIVE:
+		deferred_gbuffer->color_textures[3]->toViewport();
+		break;
 	case DEPTH:
 		Shader* depth = Shader::Get("depth");
 		depth->enable();
@@ -64,13 +78,19 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene) {
 void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 	Shader* shader_pass = (deferred_output == WORLD_POS) ? Shader::Get("deferred_world_pos") : Shader::Get("deferred_pass");
 
+	final_illumination_fbo->bind();
+
+	glClearColor(0.1, 0.1, 0.1, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	assert(shader_pass != NULL && "Error null shader");
 	shader_pass->enable();
 
 	shader_pass->setUniform("u_albedo_tex", deferred_gbuffer->color_textures[0], 0);
 	shader_pass->setUniform("u_normal_occ_tex", deferred_gbuffer->color_textures[1], 1);
 	shader_pass->setUniform("u_met_rough_tex", deferred_gbuffer->color_textures[2], 2);
-	shader_pass->setUniform("u_depth_tex", deferred_gbuffer->depth_texture, 3);
+	shader_pass->setUniform("u_depth_tex", deferred_gbuffer->depth_texture, 4);
+	shader_pass->setUniform("u_emmisive_tex", deferred_gbuffer->depth_texture, 3);
 
 	shader_pass->setUniform("u_camera_nearfar", vec2(0.1, camera->far_plane));
 	shader_pass->setUniform("u_viewprojection", camera->viewprojection_matrix);
@@ -96,7 +116,6 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 		light_intensities[light_count] = light_ent->intensity;
 		light_shadow_id[light_count] = light_ent->light_id;
 		light_direction[light_count] = light_ent->get_model().frontVector() * -1.0f;
-		//std::cout << light_ent->light_id << std::endl;
 	}
 
 	shader_pass->setUniform("u_ambient_light", scene->ambient_light);
@@ -122,6 +141,11 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
+
+	// TODO: Render point lights
+
+	final_illumination_fbo->unbind();
+	final_illumination_fbo->color_textures[0]->toViewport();
 }
 
 
