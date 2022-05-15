@@ -123,7 +123,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 		forwardRenderScene(scene);
 		break;
 	case DEFERRED:
-		deferredRenderScene(scene);
+		deferredRenderScene(scene, camera);
 		break;
 	default:
 		break;

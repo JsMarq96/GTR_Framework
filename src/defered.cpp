@@ -15,7 +15,7 @@ void GTR::Renderer::_init_deferred_renderer() {
 	final_illumination_fbo->create(Application::instance->window_width, Application::instance->window_height,
 		1,
 		GL_RGBA,
-		GL_FLOAT,
+		GL_UNSIGNED_BYTE,
 		true);
 }
 
@@ -95,7 +95,7 @@ inline void GTR::Renderer::forwardOpacyRenderDrawCall(const sDrawCall& draw_call
 	glDisable(GL_BLEND);
 }
 
-void GTR::Renderer::deferredRenderScene(const Scene* scene) {
+void GTR::Renderer::deferredRenderScene(const Scene* scene, Camera *cam) {
 	deferred_gbuffer->bind();
 
 	// Clean last frame
@@ -130,6 +130,8 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene) {
 
 	deferred_gbuffer->unbind();
 
+	camera = cam;
+
 	switch (deferred_output) {
 	case WORLD_POS:
 	case RESULT:
@@ -162,7 +164,7 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 	final_illumination_fbo->bind();
 
 	glClearColor(0.1, 0.1, 0.1, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	assert(shader_pass != NULL && "Error null shader");
 	shader_pass->enable();
@@ -220,90 +222,14 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 	assert(glGetError() == GL_NO_ERROR);
 	shader_pass->disable();
 
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
+	// Copy the depth shader to the illumination shader
+	deferred_gbuffer->depth_texture->copyTo(NULL);
 
-	Mesh *sphere = Mesh::Get("data/meshes/sphere.obj");
-
-	glFrontFace(GL_CW);
-
-	// TODO: Render point lights
-	for (uint16_t i = 0; i < _scene_non_directonal_lights.size(); i++) {
-		LightEntity* light = _scene_non_directonal_lights[i];
-
-		if (light->light_type != POINT_LIGHT) {
-			continue;
-		}
-		renderLightVolume(light);
-	}
-
-	glFrontFace(GL_CCW);
+	renderDeferredLightVolumes();
 
 	final_illumination_fbo->unbind();
 	final_illumination_fbo->color_textures[0]->toViewport();
 }
-
-void GTR::Renderer::renderLightVolume(LightEntity* light) {
-	mat4 model;
-	float light_size = light->max_distance / 2.0f;
-	model.setScale(light_size, light_size, light_size);
-	vec3 pos = light->get_translation();
-	model.setTranslation(pos.x, pos.y, pos.z);
-
-	Mesh* sphere_mesh = Mesh::Get("data/meshes/sphere.obj", false);
-
-	//define locals to simplify coding
-	Shader* shader = NULL;
-
-	//select the blending
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-
-	//chose a shader
-	shader = Shader::Get("deferred_plane_traslucent");
-
-	assert(glGetError() == GL_NO_ERROR);
-
-	//no shader? then nothing to render
-	if (!shader)
-		return;
-	shader->enable();
-
-	// Upload light data
-	// Common data of the lights
-	shader->setUniform("u_light_pos", light->get_translation());
-	shader->setUniform("u_light_color", light->color);
-	shader->setUniform("u_light_type", light->light_type);
-	shader->setUniform("u_light_shadow_id",(int) light->light_id);
-	shader->setUniform("u_light_max_dist", light->max_distance);
-	shader->setUniform("u_light_intensities", light->intensity);
-
-	// Spotlight data of the lights
-	//shader->setUniform("u_light_direction", (float*)draw_call.light_direction, draw_call.light_count);
-	//shader->setUniform("u_light_cone_angle", (float*)draw_call.light_cone_angle, draw_call.light_count);
-	//shader->setUniform("u_light_cone_decay", (float*)draw_call.light_cone_decay, draw_call.light_count);
-
-	//upload uniforms
-	shader->setUniform("u_viewprojection", draw_call.camera->viewprojection_matrix);
-	shader->setUniform("u_camera_position", draw_call.camera->eye);
-	shader->setUniform("u_model", model);
-	float t = getTime();
-	shader->setUniform("u_time", t);
-
-	// Set the shadowmap
-	shadowmap_renderer.bind_shadows(shader);
-
-	//do the draw call that renders the mesh into the screen
-	draw_call.mesh->render(GL_TRIANGLES);
-
-	//disable shader
-	shader->disable();
-
-	//set the render state as it was before to avoid problems with future renders
-	glDisable(GL_BLEND);
-}
-
 
 void GTR:: Renderer::renderDeferredPlainDrawCall(const sDrawCall& draw_call, const Scene* scene) {
 	//in case there is nothing to do
