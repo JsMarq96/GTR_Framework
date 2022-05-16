@@ -5,7 +5,7 @@
 void GTR::Renderer::renderDeferredLightVolumes() {
 	// Set depth test as only max, without writting to it
 	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
+	//glDepthFunc(GL_GREATER);
 	glDepthMask(false);
 	
 	// Face culling configureg to only render backface, to avoid overdraw
@@ -17,6 +17,7 @@ void GTR::Renderer::renderDeferredLightVolumes() {
 	glBlendFunc(GL_ONE, GL_ONE);
 
 	Mesh* sphere_mesh = Mesh::Get("data/meshes/sphere.obj", false);
+	Mesh* cone_mesh = Mesh::Get("data/meshes/cone.obj", false);
 	Shader* shader = Shader::Get("deferred_lightpass");
 	assert(glGetError() == GL_NO_ERROR);
 
@@ -40,14 +41,21 @@ void GTR::Renderer::renderDeferredLightVolumes() {
 	for (uint16_t i = 0; i < _scene_non_directonal_lights.size(); i++) {
 		LightEntity* light = _scene_non_directonal_lights[i];
 
-		if (light->light_type != POINT_LIGHT) {
-			continue;
-		}
-		mat4 model, scaling;
-		float light_size = light->max_distance;
+		mat4 model, scaling, rotation;
 
-		model = light->get_model();
-		scaling.setScale(light_size, light_size, light_size);
+		vec3 light_pos = light->get_translation();
+		model.setTranslation(light_pos.x, light_pos.y, light_pos.z);
+
+		float light_size = light->max_distance;
+		if (light->light_type == POINT_LIGHT) {
+			scaling.setScale(light_size, light_size, light_size);
+		} else if (light->light_type == SPOT_LIGHT) {
+			// Cone radius = cone height * tan(cone angle)
+			float radius = light_size * tanf(light->cone_angle * DEG2RAD);
+			scaling.setScale(radius, light_size, radius);
+		}
+		
+		scaling.rotate(light->rotation_angle * DEG2RAD, vec3(0.0f, 1.0f, 0.0f));
 		model = scaling * model;
 
 		// Upload light data
@@ -63,7 +71,11 @@ void GTR::Renderer::renderDeferredLightVolumes() {
 		shader->setUniform("u_model", model);
 
 		//do the draw call that renders the mesh into the screen
-		sphere_mesh->render(GL_TRIANGLES);
+		if (light->light_type == POINT_LIGHT) {
+			sphere_mesh->render(GL_TRIANGLES);
+		} else if (light->light_type == SPOT_LIGHT) {
+			cone_mesh->render(GL_TRIANGLES);
+		}
 	}
 
 	shader->disable();

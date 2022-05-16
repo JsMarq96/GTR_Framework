@@ -100,6 +100,8 @@ namespace GTR {
 		float intensity = 1.0f;
 		float max_distance = 10.0f;
 
+		float rotation_angle = 0.0f;
+
 		// For Spotlight
 		float cone_angle = 0.0f;
 		float cone_exp_decay = 1.0f;

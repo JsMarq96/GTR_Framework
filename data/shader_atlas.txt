@@ -794,11 +794,16 @@ void main()
 	float shadow_compoment = 1.0;
 
 	if (u_light_type != 1) {
+		FragColor = vec4(u_light_color, 1.0);
+		return;
+	}
+
+	if (u_light_type != 1) {
 		shadow_compoment = get_shadow_component(u_light_shadow_id, world_pos);
 	}
 
 	if (shadow_compoment == 0) {
-		//discard;
+		discard;
 	}
 
 	vec3 L = normalize(u_light_pos - world_pos);;

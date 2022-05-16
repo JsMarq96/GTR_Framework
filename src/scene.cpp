@@ -209,6 +209,10 @@ void GTR::LightEntity::configure(cJSON* json) {
 	}
 
 	// Shared parameters upon all lights
+	if (cJSON_GetObjectItem(json, "angle"))
+	{
+		rotation_angle = readJSONNumber(json, "angle",0.0f);
+	}
 
 	if (cJSON_GetObjectItem(json, "color"))
 	{
