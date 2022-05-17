@@ -793,10 +793,11 @@ void main()
 
 	float shadow_compoment = 1.0;
 
-	if (u_light_type != 1) {
+	if (u_light_type != 1) { // Calculate if its in shadow if its not a point-light
 		shadow_compoment = get_shadow_component(u_light_shadow_id, world_pos);
 	}
 
+	// If its in shadow, skip the light contribution
 	if (shadow_compoment == 0) {
 		discard;
 	}
@@ -807,7 +808,7 @@ void main()
 	vec3 L = vec3(0.0);
 	if (u_light_type == 1) { // Directional light
 		L = normalize(u_light_pos);
-		light_attenuation = 1.0;
+		light_attenuation = 1.0; // No atenuation for the directional/sun/moon light
 	} else {
 		L = normalize(u_light_pos - world_pos);
 		light_attenuation = u_light_max_dist - length(world_pos - u_light_pos);
@@ -823,19 +824,12 @@ void main()
 		if (l_dot_d >= u_light_cone_angle) {
 			// If the fragment to light direction is inside the angle of the spotlight
 			light_component += (pow(l_dot_d, u_light_cone_decay) * n_dot_l * u_light_color) * light_attenuation * u_light_intensities;
-			//light_component = u_light_color;
 		}
 	} else { // For directional & point
 		light_component += (n_dot_l * u_light_color) * light_attenuation * u_light_intensities;
 	}
 	
-	//light_component += (n_dot_l * u_light_color) * light_attenuation;
-
-	//color.rgb = color.rgb * ((light_component + emmisive_comp) + (occlusion_comp * u_ambient_light));
-	//color.rgb =  color.rgb * light_component;
-	//FragColor = vec4(vec3(1.0, color_d, color_d),  1.0);
 	FragColor = vec4(color.rgb * light_component, 1.0);
-	//FragColor = color;
 }
 
 \instanced.vs
