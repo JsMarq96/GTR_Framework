@@ -117,7 +117,7 @@ namespace GTR {
 
 		// Debgging toggles for forward rendering
 		bool use_single_pass = true;
-		bool render_light_volumes = true;
+		bool render_light_volumes = false;
 
 		// Debugging for Deferred rendering
 		eDeferredDebugOutput deferred_output = RESULT;

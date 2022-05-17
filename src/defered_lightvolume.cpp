@@ -47,17 +47,25 @@ void GTR::Renderer::renderDeferredLightVolumes() {
 		vec3 light_pos = light->get_translation();
 		model.setTranslation(light_pos.x, light_pos.y, light_pos.z);
 
+		float angles[3];
+
+		light->get_model().getXYZ(angles);
+
 		float light_size = light->max_distance;
 		if (light->light_type == POINT_LIGHT) {
 			scaling.setScale(light_size, light_size, light_size);
-		} else if (light->light_type == SPOT_LIGHT) {
+		}
+		else if (light->light_type == SPOT_LIGHT) {
 			// Cone radius = cone height * tan(cone angle)
 			float radius = light_size * tanf(light->cone_angle * DEG2RAD);
-			scaling.setScale(radius, radius, light_size);
+			scaling.scale(radius, radius, light_size);
 		}
-		
-		scaling.rotate(light->rotation_angle * DEG2RAD, vec3(0.0f, 1.0f, 0.0f));
-		model = scaling * model;
+
+		rotation.rotate(angles[0], vec3(1.0f, 0.0f, 0.0f));
+		rotation.rotate(angles[1], vec3(0.0f, 1.0f, 0.0f));
+		rotation.rotate(angles[2], vec3(0.0f, 0.0f, 1.0f));
+
+		model = scaling * rotation * model;
 
 		// Upload light data
 		// Common data of the lights
@@ -110,21 +118,27 @@ void GTR::Renderer::renderDeferredLightVolumes() {
 
 		mat4 model, scaling, rotation;
 
+		float angles[3];
+
+		light->get_model().getXYZ(angles);
+
 		vec3 light_pos = light->get_translation();
 		model.setTranslation(light_pos.x, light_pos.y, light_pos.z);
 
 		float light_size = light->max_distance;
 		if (light->light_type == POINT_LIGHT) {
 			scaling.setScale(light_size, light_size, light_size);
-		}
-		else if (light->light_type == SPOT_LIGHT) {
+		} else if (light->light_type == SPOT_LIGHT) {
 			// Cone radius = cone height * tan(cone angle)
 			float radius = light_size * tanf(light->cone_angle * DEG2RAD);
-			scaling.setScale(radius, light_size, radius);
+			scaling.scale( radius, radius, light_size);
 		}
+		
+		rotation.rotate(angles[0], vec3(1.0f, 0.0f, 0.0f));
+		rotation.rotate(angles[1], vec3(0.0f, 1.0f, 0.0f));
+		rotation.rotate(angles[2], vec3(0.0f, 0.0f, 1.0f));
 
-		scaling.rotate(light->rotation_angle * DEG2RAD, vec3(0.0f, 1.0f, 0.0f));
-		model = scaling * model;
+		model = rotation * scaling * model;
 
 		// Upload light data
 		// Common data of the lights
