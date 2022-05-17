@@ -643,6 +643,72 @@ void main()
 	FragColor = vec4(pos, 1.0);
 }
 
+\frag_data
+
+struct sFragData {
+	// Material
+	float roughness;
+	float metalness;
+
+	vec3 albedo;
+
+	float occlusion;
+
+	float attenuation;
+
+	vec3 normal;
+
+	// Vectors
+	vec3 l;
+	float n_dot_v;
+	float n_dot_h;
+	float n_dot_l;
+	float l_dot_d;
+
+	// Position
+	vec3 world_pos;
+};
+
+vec3 get_world_position_from_depth(vec2 uv) {
+	float d = texture2D(u_depth_tex, uv).x;	
+	vec4 clip = vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
+	vec4 world_pos = v_viewprojection_inv * clip;
+
+	return world_pos.xyz / world_pos.w;
+}
+
+sFragData getDataOfFragment(vec2 uv) {
+	sFragData mat;
+
+	vec4 mrt = texture(u_met_rough_tex, uv);
+	mat.roughness = mrt.r;
+	mat.metalness = mrt.g;
+
+	mat.albedo = texture(u_albedo_tex, uv).rgb;
+
+	vec4 norm_occ = texture(u_normal_occ_tex, uv);
+	mat.normal = normalize(norm_occ.rgb * 2.0 - 1.0);
+	mat.occlusion = norm_occ.a;
+
+	mat.world_pos = get_world_position_from_depth(uv);
+
+	if (u_light_type == 1) { // Directional light
+		mat.l = normalize(u_light_pos);
+		mat.attenuation = 1.0; // No atenuation for the directional/sun/moon light
+	} else {
+		mat.l = normalize(u_light_pos - mat.world_pos);
+		mat.attenuation = u_light_max_dist - length(mat.world_pos - u_light_pos);
+		mat.attenuation = max(mat.attenuation / u_light_max_dist, 0.0); 
+		mat.attenuation *= mat.attenuation;
+	}
+	
+	vec3 D = normalize(u_light_direction);
+	mat.n_dot_l = max(dot(mat.l, mat.normal), 0.0);
+	mat.l_dot_d = dot(D, mat.l);
+
+	return mat;
+}
+
 \deferred_pass.fs
 
 #version 330 core
@@ -722,9 +788,6 @@ void main()
 		light_component += (n_dot_l * u_light_color[i]) * light_attenuation * u_light_intensities[i];
 	}
 
-	//vec3 emmisive_comp = texture( u_emmisive_tex, v_uv ).rgb;
-
-	//color.rgb = color.rgb * ((light_component + emmisive_comp) + (occlusion_comp * u_ambient_light));
 	color.rgb = color.rgb * ((light_component) + (occlusion_comp * u_ambient_light));
 
 	FragColor = color;
@@ -769,32 +832,18 @@ in mat4 v_viewprojection_inv;
 out vec4 FragColor;
 
 #include "depth_functions"
-
-vec3 get_world_position_from_depth(vec2 uv) {
-	float d = texture2D(u_depth_tex, uv).x;	
-	vec4 clip = vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
-	vec4 world_pos = v_viewprojection_inv * clip;
-
-	return world_pos.xyz / world_pos.w;
-}
+#include "frag_data"
 
 void main()
 {
 	vec2 uv = gl_FragCoord.xy * u_screen_res.xy;
-	vec3 world_pos = get_world_position_from_depth(uv);
 
-	vec4 color = texture( u_albedo_tex, uv );
-	vec4 normal_occ = texture2D(u_normal_occ_tex, uv);
-	float occlusion_comp = normal_occ.a;
-
-	vec3 light_component = vec3(0.0);
-
-	vec3 N = normalize(normal_occ.rgb * 2.0 - 1.0);
+	sFragData frag_data = getDataOfFragment(uv);
 
 	float shadow_compoment = 1.0;
 
 	if (u_light_type != 1) { // Calculate if its in shadow if its not a point-light
-		shadow_compoment = get_shadow_component(u_light_shadow_id, world_pos);
+		shadow_compoment = get_shadow_component(u_light_shadow_id, frag_data.world_pos);
 	}
 
 	// If its in shadow, skip the light contribution
@@ -802,34 +851,18 @@ void main()
 		discard;
 	}
 
-	// Quadratic light attenuation
-	float light_attenuation = 0.0;
-
-	vec3 L = vec3(0.0);
-	if (u_light_type == 1) { // Directional light
-		L = normalize(u_light_pos);
-		light_attenuation = 1.0; // No atenuation for the directional/sun/moon light
-	} else {
-		L = normalize(u_light_pos - world_pos);
-		light_attenuation = u_light_max_dist - length(world_pos - u_light_pos);
-		light_attenuation = max(light_attenuation / u_light_max_dist, 0.0); 
-		light_attenuation *= light_attenuation;
-	}
-	
-	vec3 D = normalize(u_light_direction);
-	float n_dot_l = max(dot(L, N), 0.0);
-	float l_dot_d = dot(D, L);
+	vec3 light_component = vec3(0.0);
 
 	if (u_light_type == 2) { // Spot light
-		if (l_dot_d >= u_light_cone_angle) {
+		if (frag_data.l_dot_d >= u_light_cone_angle) {
 			// If the fragment to light direction is inside the angle of the spotlight
-			light_component += (pow(l_dot_d, u_light_cone_decay) * n_dot_l * u_light_color) * light_attenuation * u_light_intensities;
+			light_component += (pow(frag_data.l_dot_d, u_light_cone_decay) * frag_data.n_dot_l * u_light_color) * frag_data.attenuation * u_light_intensities;
 		}
 	} else { // For directional & point
-		light_component += (n_dot_l * u_light_color) * light_attenuation * u_light_intensities;
+		light_component += (frag_data.n_dot_l * u_light_color) * frag_data.attenuation * u_light_intensities;
 	}
 	
-	FragColor = vec4(color.rgb * light_component, 1.0);
+	FragColor = vec4(frag_data.albedo * light_component, 1.0);
 }
 
 \instanced.vs
