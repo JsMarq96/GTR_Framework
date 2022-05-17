@@ -90,7 +90,7 @@
 			"angle": -45,
 			"color":[1,1,1],
 			"intensity":10,
-			"max_dist":100,
+			"max_dist":1000,
 			"cone_angle":45,
 			"cone_exp":60,
 			"light_type":"SPOT",

@@ -117,6 +117,7 @@ namespace GTR {
 
 		// Debgging toggles for forward rendering
 		bool use_single_pass = true;
+		bool render_light_volumes = true;
 
 		// Debugging for Deferred rendering
 		eDeferredDebugOutput deferred_output = RESULT;
@@ -233,6 +234,7 @@ namespace GTR {
 				break;
 			case DEFERRED:
 				ImGui::Combo("Deferred debug", (int*)&deferred_output, deferred_output_labels, IM_ARRAYSIZE(deferred_output_labels));
+				ImGui::Checkbox("Show Light volumes", &render_light_volumes);
 				break;
 			default:
 				break;

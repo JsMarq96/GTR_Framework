@@ -5,16 +5,17 @@
 void GTR::Renderer::renderDeferredLightVolumes() {
 	// Set depth test as only max, without writting to it
 	glEnable(GL_DEPTH_TEST);
-	//glDepthFunc(GL_GREATER);
+	glDepthFunc(GL_GREATER);
 	glDepthMask(false);
 	
 	// Face culling configureg to only render backface, to avoid overdraw
 	glEnable(GL_CULL_FACE);
-	//glFrontFace(GL_CW);
+	glFrontFace(GL_CW);
 
 	// Enable additive blending
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE);
+
 
 	Mesh* sphere_mesh = Mesh::Get("data/meshes/sphere.obj", false);
 	Mesh* cone_mesh = Mesh::Get("data/meshes/cone.obj", false);
@@ -52,7 +53,7 @@ void GTR::Renderer::renderDeferredLightVolumes() {
 		} else if (light->light_type == SPOT_LIGHT) {
 			// Cone radius = cone height * tan(cone angle)
 			float radius = light_size * tanf(light->cone_angle * DEG2RAD);
-			scaling.setScale(radius, light_size, radius);
+			scaling.setScale(radius, radius, light_size);
 		}
 		
 		scaling.rotate(light->rotation_angle * DEG2RAD, vec3(0.0f, 1.0f, 0.0f));
@@ -67,6 +68,8 @@ void GTR::Renderer::renderDeferredLightVolumes() {
 		shader->setUniform("u_light_max_dist", light_size);
 		shader->setUniform("u_light_intensities", light->intensity);
 		shader->setUniform("u_light_direction", light->get_model().frontVector() * -1.0f);
+		shader->setUniform("u_light_cone_angle", (float)(light->cone_angle * 0.0174533));
+		shader->setUniform("u_light_cone_decay", light->cone_exp_decay);
 
 		shader->setUniform("u_model", model);
 
@@ -74,6 +77,7 @@ void GTR::Renderer::renderDeferredLightVolumes() {
 		if (light->light_type == POINT_LIGHT) {
 			sphere_mesh->render(GL_TRIANGLES);
 		} else if (light->light_type == SPOT_LIGHT) {
+			
 			cone_mesh->render(GL_TRIANGLES);
 		}
 	}
@@ -84,5 +88,61 @@ void GTR::Renderer::renderDeferredLightVolumes() {
 	glDisable(GL_BLEND);
 	glFrontFace(GL_CCW);
 	glDepthFunc(GL_LESS);
+	glDepthMask(true);
+
+	if (!render_light_volumes) {
+		return;
+	}
+
+	glDepthMask(false);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+	Shader *shaderp = Shader::Get("flat");
+	assert(glGetError() == GL_NO_ERROR);
+
+	shaderp->enable();
+
+	shaderp->setUniform("u_viewprojection", camera->viewprojection_matrix);
+
+	// TODO: Render point lights
+	for (uint16_t i = 0; i < _scene_non_directonal_lights.size(); i++) {
+		LightEntity* light = _scene_non_directonal_lights[i];
+
+		mat4 model, scaling, rotation;
+
+		vec3 light_pos = light->get_translation();
+		model.setTranslation(light_pos.x, light_pos.y, light_pos.z);
+
+		float light_size = light->max_distance;
+		if (light->light_type == POINT_LIGHT) {
+			scaling.setScale(light_size, light_size, light_size);
+		}
+		else if (light->light_type == SPOT_LIGHT) {
+			// Cone radius = cone height * tan(cone angle)
+			float radius = light_size * tanf(light->cone_angle * DEG2RAD);
+			scaling.setScale(radius, light_size, radius);
+		}
+
+		scaling.rotate(light->rotation_angle * DEG2RAD, vec3(0.0f, 1.0f, 0.0f));
+		model = scaling * model;
+
+		// Upload light data
+		// Common data of the lights
+		shaderp->setUniform("u_color", vec4(light->color, 1.0f));
+
+		shaderp->setUniform("u_model", model);
+
+		//do the draw call that renders the mesh into the screen
+		if (light->light_type == POINT_LIGHT) {
+			sphere_mesh->render(GL_TRIANGLES);
+		}
+		else if (light->light_type == SPOT_LIGHT) {
+			cone_mesh->render(GL_TRIANGLES);
+		}
+	}
+
+	shaderp->disable();
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glDepthMask(true);
 }
