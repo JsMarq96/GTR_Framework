@@ -27,8 +27,7 @@ void GTR::Renderer::renderDeferredLightVolumes() {
 	shader->setUniform("u_albedo_tex", deferred_gbuffer->color_textures[0], 0);
 	shader->setUniform("u_normal_occ_tex", deferred_gbuffer->color_textures[1], 1);
 	shader->setUniform("u_met_rough_tex", deferred_gbuffer->color_textures[2], 2);
-	shader->setUniform("u_depth_tex", deferred_gbuffer->depth_texture, 4);
-	shader->setUniform("u_emmisive_tex", deferred_gbuffer->color_textures[3], 3);
+	shader->setUniform("u_depth_tex", deferred_gbuffer->depth_texture, 3);
 	shader->setUniform("u_screen_res", vec2(1.0f / (deferred_gbuffer->depth_texture->width), 1.0f / (deferred_gbuffer->depth_texture->height)));
 	shader->setUniform("u_viewprojection", camera->viewprojection_matrix);
 	shader->setUniform("u_camera_position", camera->eye);

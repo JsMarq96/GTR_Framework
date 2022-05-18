@@ -74,41 +74,6 @@ vec3 perturbNormal(vec3 N, vec3 world_pos, vec2 uv) {
 	return normalize(TBN * normal_pixel);
 }
 
-\fragment_materials
-
-struct sFragmentMaterial {
-	vec3 albedo;
-	vec3 normal;
-	float alpha;
-	vec3 emmisive;
-	float metallic;
-	float roughnes;
-	float occlusion;
-};
-
-#include "normal_functions"
-
-sFragmentMaterial get_fragment_material(vec2 uv) {
-	vec4 color = texture(u_texture, uv).rgba;
-	vec4 met_rough = texture(u_met_rough_tex, uv).rgba;
-	vec3 n = texture(u_normal_tex, uv).rgb;
-
-	sFragmentMaterial frag_mat;
-	frag_mat.albedo = color.rgb * u_color.rgb;
-	frag_mat.alpha = color.a;
-	frag_mat.normal = normalize(v_normal);
-	frag_mat.emmisive = texture(u_emmisive_tex, uv).rgb;
-	frag_mat.occlusion = texture(u_occlusion_tex, uv).r;
-	frag_mat.metallic = met_rough.r;
-	frag_mat.roughnes = met_rough.g;
-
-	if (length(n) > 0.0) { // If normal is enabled
-		frag_mat.normal = texture2D(u_normal_tex, uv).xyz;	
-	}
-
-	return frag_mat;
-}
-
 \basic.vs
 
 #version 330 core
@@ -357,7 +322,7 @@ uniform vec3 u_light_direction[MAX_LIGHT];
 out vec4 FragColor;
 #include "depth_functions"
 
-#include "fragment_materials"
+#include "normal_functions"
 
 void main()
 {
@@ -446,7 +411,7 @@ uniform float u_alpha_cutoff;
 layout(location = 0) out vec4 o_frag_albedo;
 layout(location = 1) out vec4 o_frag_normal;
 layout(location = 2) out vec4 o_frag_materials;
-layout(location = 3) out vec3 o_emmisive_materials;
+layout(location = 3) out vec4 o_emmisive_materials;
 
 #include "normal_functions"
 
@@ -475,7 +440,7 @@ void main()
 
 	o_frag_normal = vec4(N * 0.5 + vec3(0.5), occlusion_comp);
 	o_frag_materials = vec4(texture( u_met_rough_tex, v_uv).rg, 0.0, 0.0);
-	o_emmisive_materials = texture(u_emmisive_tex, v_uv).rgb;
+	o_emmisive_materials = vec4(emmisive_comp, 1.0);
 }
 
 \deferred_plain_traslucent.fs
@@ -503,7 +468,7 @@ uniform float u_alpha_cutoff;
 layout(location = 0) out vec4 o_frag_albedo;
 layout(location = 1) out vec4 o_frag_normal;
 layout(location = 2) out vec4 o_frag_materials;
-layout(location = 3) out vec3 o_emmisive_materials;
+layout(location = 3) out vec4 o_emmisive_materials;
 
 #include "normal_functions"
 
@@ -530,7 +495,7 @@ void main()
 	}
 	
 	o_frag_materials = vec4(texture( u_met_rough_tex, v_uv).rg, 0.0, 0.0);
-	o_emmisive_materials = texture(u_emmisive_tex, v_uv).rgb;
+	o_emmisive_materials = vec4(emmisive_comp, 1.0);
 }
 
 \texture.fs
@@ -761,8 +726,6 @@ vec3 get_world_position_from_depth(const in vec2 uv) {
 sFragData getDataOfFragment(const in vec2 uv) {
 	sFragData mat;
 
-	//mat.uv = uv;
-
 	vec4 mrt = texture(u_met_rough_tex, uv);
 	mat.roughness = mrt.r;
 	mat.metalness = mrt.g;
@@ -788,11 +751,6 @@ sFragData getDataOfFragment(const in vec2 uv) {
 const float PI = 3.14159226;
 
 uniform vec2 u_camera_nearfar;
-uniform sampler2D u_albedo_tex;
-uniform sampler2D u_normal_occ_tex;
-uniform sampler2D u_met_rough_tex;
-uniform sampler2D u_depth_tex;
-
 uniform vec3 u_camera_position;
 
 // Light uniforms
@@ -813,6 +771,12 @@ uniform mat4 u_shadow_vp[MAX_SHADOWS];
 uniform float u_shadow_bias;
 uniform int u_light_id;
 
+uniform sampler2D u_albedo_tex;
+uniform sampler2D u_normal_occ_tex;
+uniform sampler2D u_met_rough_tex;
+uniform sampler2D u_emmisive_tex;
+uniform sampler2D u_depth_tex;
+
 in vec2 v_uv;
 in mat4 v_viewprojection_inv;
 
@@ -828,6 +792,9 @@ void main()
 	sFragData frag_data = getDataOfFragment(v_uv);
 
 	vec3 final_color = frag_data.albedo * (frag_data.occlusion * u_ambient_light);
+
+	// Add emisivenes
+	final_color += texture(u_emmisive_tex, v_uv).rgb; 
 
 	// Only for directiona lights
 	for(int i = 0; i < MAX_LIGHT; i++) {
@@ -851,9 +818,9 @@ void main()
 		final_color += color * light_component;
 	}
 
-	final_color = final_color;// * ();
+	//final_color = final_color;// * ();
 
-	FragColor = vec4(final_color.rgb, 1.0);
+	FragColor = vec4(final_color, 1.0);
 }
 
 \deferred_lightpass.fs

@@ -9,7 +9,7 @@ void GTR::Renderer::_init_deferred_renderer() {
 	deferred_gbuffer->create(Application::instance->window_width, Application::instance->window_height, 
 		4,
 		GL_RGBA, 
-		GL_UNSIGNED_BYTE,  // Enought..?
+		GL_FLOAT,  // Enought..? Now, yes
 		true);
 
 	final_illumination_fbo->create(Application::instance->window_width, Application::instance->window_height,
@@ -112,7 +112,7 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene, Camera *cam) {
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	deferred_gbuffer->enableSingleBuffer(3);
-	glClearColor(0.1, 0.1, 0.1, 1.0);
+	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	deferred_gbuffer->enableAllBuffers();
@@ -172,8 +172,8 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 	shader_pass->setUniform("u_albedo_tex", deferred_gbuffer->color_textures[0], 0);
 	shader_pass->setUniform("u_normal_occ_tex", deferred_gbuffer->color_textures[1], 1);
 	shader_pass->setUniform("u_met_rough_tex", deferred_gbuffer->color_textures[2], 2);
+	shader_pass->setUniform("u_emmisive_tex", deferred_gbuffer->color_textures[3], 3);
 	shader_pass->setUniform("u_depth_tex", deferred_gbuffer->depth_texture, 4);
-	shader_pass->setUniform("u_emmisive_tex", deferred_gbuffer->depth_texture, 3);
 
 	shader_pass->setUniform("u_camera_nearfar", vec2(0.1, camera->far_plane));
 	shader_pass->setUniform("u_viewprojection", camera->viewprojection_matrix);
