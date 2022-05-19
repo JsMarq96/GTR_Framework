@@ -15,16 +15,31 @@
 			"pbr_type": 1
 		},
 		{
+			"name":"spot",
+			"type":"LIGHT",
+			"position":[3, 20, 100],
+			"rotation":[0, -11.6, 0],
+			"angle": 180,
+			"color":[1,1,1],
+			"intensity":10,
+			"max_dist":1000,
+			"cone_angle":45,
+			"cone_exp":30,
+			"light_type":"SPOT",
+			"cast_shadows": true,
+			"shadow_bias": 0.001
+		},
+		{
 			"name":"spot2",
 			"type":"LIGHT",
-			"position":[8, 40, -72],
+			"position":[3, 20, -100],
 			"rotation":[0, -11.6, 0],
 			"angle": 0,
 			"color":[1,1,1],
 			"intensity":10,
 			"max_dist":1000,
 			"cone_angle":45,
-			"cone_exp":60,
+			"cone_exp":30,
 			"light_type":"SPOT",
 			"cast_shadows": true,
 			"shadow_bias": 0.001

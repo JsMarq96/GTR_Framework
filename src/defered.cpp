@@ -60,6 +60,7 @@ inline void GTR::Renderer::forwardOpacyRenderDrawCall(const sDrawCall& draw_call
 	shader->setUniform1Array("u_light_max_dist", (float*)draw_call.light_max_distance, draw_call.light_count);
 	shader->setUniform1Array("u_light_intensities", draw_call.light_intensities, draw_call.light_count);
 	shader->setUniform("u_num_lights", draw_call.light_count);
+	shader->setUniform("u_material_type", draw_call.pbr_structure);
 
 	// Spotlight data of the lights
 	shader->setUniform3Array("u_light_direction", (float*)draw_call.light_direction, draw_call.light_count);

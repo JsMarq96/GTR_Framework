@@ -467,6 +467,7 @@ uniform sampler2D u_emmisive_tex;
 uniform sampler2D u_met_rough_tex;
 uniform sampler2D u_normal_tex;
 uniform sampler2D u_occlusion_tex;
+uniform int u_material_type;
 
 uniform float u_time;
 uniform float u_alpha_cutoff;
@@ -500,7 +501,12 @@ void main()
 		o_frag_normal = vec4(perturbNormal(normalize(v_normal), v_world_position, v_uv), occlusion_comp);
 	}
 	
-	o_frag_materials = vec4(texture( u_met_rough_tex, v_uv).rg, 0.0, 0.0);
+	vec4 mats = texture( u_met_rough_tex, v_uv);
+	if (u_material_type == 0) {
+		o_frag_materials = vec4(mats.r, mats.g, 0.0, 0.0);
+	} else {
+		o_frag_materials = vec4(mats.g, mats.b, 0.0, 0.0);
+	}
 	o_emmisive_materials = vec4(emmisive_comp, 1.0);
 }
 
@@ -616,11 +622,10 @@ void main()
 
 \brdf
 float distribution_GGX(const in sFragData data, const in sFragVects vectors) {
-	float alpha = data.roughness;
-	float alpha_squared = alpha * alpha;
+	float alpha_squared = data.alpha * data.alpha;
 
 	float f = ((vectors.n_dot_h * vectors.n_dot_h) * (alpha_squared - 1.0)) + 1.0;
-	return alpha_squared / (PI * f * f);
+	return alpha_squared / ((PI * f * f));
 }
 
 vec3 fresnel_schlick(const in float angle, const in vec3 f0) {
@@ -644,7 +649,7 @@ vec3 specular_BRDF(const in sFragData data, const in sFragVects vectors) {
 
 	float G = geometry_Smith(data, vectors);
 
-	float normalization = (4.0 * vectors.n_dot_l * vectors.n_dot_v) + 0.0001;
+	float normalization = (4.0 * vectors.n_dot_l * vectors.n_dot_v) + 0.001;
 
 	return vec3(D * F * G) / normalization;
 }
@@ -657,7 +662,7 @@ vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
 	vec3 diffuse_color = mix(data.albedo, vec3(0.0), data.metalness);
 
 	vec3 specular = specular_BRDF(data, vects);
-	vec3 diffuse = data.occlusion * diffuse_color / PI; // Lambertian BRDF
+	vec3 diffuse = data.occlusion * diffuse_color / PI; // Lambertian BRDF cuz cheap
 
 	return (specular + diffuse) * vects.attenuation;
 }
@@ -744,7 +749,7 @@ sFragData getDataOfFragment(const in vec2 uv) {
 
 	mat.world_pos = get_world_position_from_depth(uv);
 
-	mat.f0 = mix(vec3(0.05), mat.albedo, mat.metalness);
+	mat.f0 = mix(vec3(0.001), mat.albedo, mat.metalness);
 	mat.alpha = mat.roughness * mat.roughness;
 
 	return mat;
