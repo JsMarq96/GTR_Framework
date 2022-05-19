@@ -69,7 +69,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 
 	for (uint16_t i = 0; i < scene_prefabs.size(); i++) {
 		PrefabEntity* pent = scene_prefabs[i];
-		add_to_render_queue(pent->model, &(pent->prefab->root), camera);
+		add_to_render_queue(pent->model, &(pent->prefab->root), camera, pent->pbr_structure);
 	}
 
 	scene_prefabs.clear();
@@ -293,7 +293,7 @@ void Renderer::init() {
 	_init_deferred_renderer();
 }
 
-void Renderer::add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node, Camera* camera) {
+void Renderer::add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node, Camera* camera, ePBR_Type pbr) {
 	if (!node->visible)
 		return;
 
@@ -312,7 +312,7 @@ void Renderer::add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node
 			// Compute the closest distance between the bounding box of the mesh and the camera
 			float camera_distance = Min((world_bounding.center + world_bounding.halfsize).distance(camera->eye), world_bounding.center.distance(camera->eye));
 			camera_distance = Min(camera_distance, (world_bounding.center - world_bounding.halfsize).distance(camera->eye));
-			add_draw_instance(node_model, node->mesh, node->material, camera, world_bounding.center.distance(camera->eye), world_bounding);
+			add_draw_instance(node_model, node->mesh, node->material, camera, world_bounding.center.distance(camera->eye), world_bounding, pbr);
 		}
 
 		// Test if the objects is on the light's frustum
@@ -335,15 +335,15 @@ void Renderer::add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node
 
 	//iterate recursively with children
 	for (int i = 0; i < node->children.size(); ++i)
-		add_to_render_queue(prefab_model, node->children[i], camera);
+		add_to_render_queue(prefab_model, node->children[i], camera, pbr);
 }
 
-void Renderer::add_draw_instance(const Matrix44 model, Mesh* mesh, GTR::Material* material, Camera* camera, const float camera_distance, const BoundingBox &aabb) {
+void Renderer::add_draw_instance(const Matrix44 model, Mesh* mesh, GTR::Material* material, Camera* camera, const float camera_distance, const BoundingBox &aabb, const ePBR_Type pbr) {
 	// Based on the material, we add it to the translucent or the opaque queue
 	if (material->alpha_mode != NO_ALPHA) {
-		_translucent_objects.push_back(sDrawCall{ model, mesh, material, camera, camera_distance, aabb });
+		_translucent_objects.push_back(sDrawCall{ model, mesh, material, camera, camera_distance, pbr, aabb });
 	}
 	else {
-		_opaque_objects.push_back(sDrawCall{ model, mesh, material, camera,  camera_distance, aabb });
+		_opaque_objects.push_back(sDrawCall{ model, mesh, material, camera,  camera_distance, pbr, aabb });
 	}
 }

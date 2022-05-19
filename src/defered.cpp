@@ -270,6 +270,7 @@ void GTR:: Renderer::renderDeferredPlainDrawCall(const sDrawCall& draw_call, con
 	// Material properties
 	shader->setUniform("u_color", draw_call.material->color);
 	bind_textures(draw_call.material, shader);
+	shader->setUniform("u_material_type", draw_call.pbr_structure);
 
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", draw_call.material->alpha_mode == GTR::eAlphaMode::MASK ? draw_call.material->alpha_cutoff : 0);

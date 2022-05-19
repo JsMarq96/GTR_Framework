@@ -24,8 +24,16 @@ namespace GTR {
 		DECALL = 5
 	};
 
+
+	enum ePBR_Type : int {
+		ROUGH_R_MET_G = 0,
+		ROUGH_G_MET_B
+	};
+
+
 	class Scene;
 	class Prefab;
+
 
 	//represents one element of the scene (could be lights, prefabs, cameras, etc)
 	class BaseEntity
@@ -48,6 +56,7 @@ namespace GTR {
 	public:
 		std::string filename;
 		Prefab* prefab;
+		ePBR_Type pbr_structure = ROUGH_R_MET_G;
 		
 		PrefabEntity();
 		virtual void renderInMenu();

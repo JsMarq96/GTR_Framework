@@ -16,6 +16,7 @@ namespace GTR {
 		Material* material;
 		Camera* camera;
 		float camera_distance;
+		ePBR_Type pbr_structure;
 
 		BoundingBox aabb; // Mesh Nounding box
 
@@ -39,6 +40,7 @@ namespace GTR {
 
 		// Area light
 		float  light_directional_area[MAX_LIGHT_NUM];
+
 
 		inline void add_light( LightEntity *light) {
 			if (light_count < MAX_LIGHT_NUM) {
@@ -145,9 +147,9 @@ namespace GTR {
 
 		void _init_deferred_renderer();
 
-		void add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node, Camera* camera);
+		void add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node, Camera* camera, ePBR_Type pbr);
 
-		void add_draw_instance(const Matrix44 model, Mesh* mesh, GTR::Material* material, Camera* camera, const float camera_distance, const BoundingBox &aabb);
+		void add_draw_instance(const Matrix44 model, Mesh* mesh, GTR::Material* material, Camera* camera, const float camera_distance, const BoundingBox& aabb, const ePBR_Type pbr);
 
 		// ===============================================
 		// ===============================================

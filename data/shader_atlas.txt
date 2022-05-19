@@ -404,6 +404,7 @@ uniform sampler2D u_emmisive_tex;
 uniform sampler2D u_met_rough_tex;
 uniform sampler2D u_normal_tex;
 uniform sampler2D u_occlusion_tex;
+uniform int u_material_type;
 
 uniform float u_time;
 uniform float u_alpha_cutoff;
@@ -439,7 +440,12 @@ void main()
 	}
 
 	o_frag_normal = vec4(N * 0.5 + vec3(0.5), occlusion_comp);
-	o_frag_materials = vec4(texture( u_met_rough_tex, v_uv).rg, 0.0, 0.0);
+	vec4 mats = texture( u_met_rough_tex, v_uv);
+	if (u_material_type == 0) {
+		o_frag_materials = vec4(mats.r, mats.g, 0.0, 0.0);
+	} else {
+		o_frag_materials = vec4(mats.g, mats.b, 0.0, 0.0);
+	}
 	o_emmisive_materials = vec4(emmisive_comp, 1.0);
 }
 

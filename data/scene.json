@@ -2,92 +2,24 @@
 	"background_color":[0.01,0.01,0.1],
 	"ambient_light":[0.1,0.1,0.2],
 	"environment":"night.hdre",
-	"camera_position":[-300,90,-150],
-	"camera_target":[0,40,0],
+	"camera_position":[-12,9,-150],
+	"camera_target":[3,20,0],
 	"camera_fov":60,
 	"entities":[
 		{
-			"name":"floor",
+			"name":"spheres",
 			"type":"PREFAB",
-			"filename":"prefabs/floor.glb",
-			"position":[0,0,0]
-		},
-		{
-			"name":"car1",
-			"type":"PREFAB",
-			"filename":"prefabs/gmc/scene.gltf",
-			"position":[-80, -3.36,-100],
-			"angle":-45
-		},
-		{
-			"name":"car2",
-			"type":"PREFAB",
-			"filename":"prefabs/gmc/scene.gltf",
-			"position":[-132.39, -3.36,131.027],
-			"angle":-90
-		},
-		{
-			"name":"car3",
-			"type":"PREFAB",
-			"filename":"prefabs/gmc/scene.gltf",
-			"position":[51.716, -3.36, 277.723],
-			"angle":200
-		},
-		{
-			"name":"car4",
-			"type":"PREFAB",
-			"filename":"prefabs/gmc/scene.gltf",
-			"position":[-59.30, -3.36,-316.172],
-			"angle": -130
-		},
-		{
-			"name":"car5",
-			"type":"PREFAB",
-			"filename":"prefabs/gmc/scene.gltf",
-			"position":[-283.281, -3.36, -73.285],
-			"angle": -130
-		},
-		{
-			"name":"car6",
-			"type":"PREFAB",
-			"filename":"prefabs/gmc/scene.gltf",
-			"position":[63.658, -3.36, -194.689],
-			"angle": -130
-		},
-		{
-			"name":"house",
-			"type":"PREFAB",
-			"filename":"prefabs/house_test/scene.gltf",
-			"position":[300,0,200],
-			"scale":[0.4,0.4,0.4]
-		},
-		{
-			"name":"house",
-			"type":"PREFAB",
-			"filename":"prefabs/house_test/scene.gltf",
-			"position":[300,0,-200],
-			"scale":[0.4,0.4,0.4]
-		},
-		{
-			"name":"trash",
-			"type":"PREFAB",
-			"filename":"prefabs/trash_can/scene.gltf",
-			"position":[140,0,110],
-			"scale":[0.5,0.5,0.5]
-		},
-		{
-			"name":"tree",
-			"type":"PREFAB",
-			"filename":"prefabs/tree/scene.gltf",
-			"position":[102,0,401],
-			"angle":-90,
-			"scale":[0.8,0.8,0.8]
+			"filename":"prefabs/MetalRoughSpheres.glb",
+			"position":[3,20,0],
+			"scale":[8,8,8],
+			"pbr_type": 1
 		},
 		{
 			"name":"spot2",
 			"type":"LIGHT",
-			"position":[-0, 36, -16],
-			"angle": -45,
+			"position":[8, 40, -72],
+			"rotation":[0, -11.6, 0],
+			"angle": 0,
 			"color":[1,1,1],
 			"intensity":10,
 			"max_dist":1000,
@@ -101,16 +33,6 @@
 			"name":"pointlight",
 			"type":"LIGHT",
 			"position":[-187,38,-156],
-			"angle": 0,
-			"color":[1,0.2,0.1],
-			"intensity":2.5,
-			"max_dist":70,
-			"light_type":"POINT"
-		},
-		{
-			"name":"pointlight2",
-			"type":"LIGHT",
-			"position":[-131,38,-205],
 			"angle": 0,
 			"color":[1,0.2,0.1],
 			"intensity":2.5,

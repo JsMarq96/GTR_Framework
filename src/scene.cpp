@@ -161,6 +161,12 @@ void GTR::PrefabEntity::configure(cJSON* json)
 		filename = cJSON_GetObjectItem(json, "filename")->valuestring;
 		prefab = GTR::Prefab::Get( (std::string("data/") + filename).c_str());
 	}
+
+	if (cJSON_GetObjectItem(json, "pbr_type"))
+	{
+		int pbr_id = cJSON_GetObjectItem(json, "pbr_type")->valueint;
+		pbr_structure = (ePBR_Type)pbr_id;
+	}
 }
 
 void GTR::PrefabEntity::renderInMenu()
