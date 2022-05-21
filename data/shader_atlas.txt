@@ -11,6 +11,8 @@ deferred_plane_traslucent basic.vs deferred_plain_traslucent.fs
 deferred_lightpass basic.vs deferred_lightpass.fs
 deferred_pass quad.vs deferred_pass.fs
 deferred_world_pos quad.vs deferred_world_pos.fs
+ao_pass quad.vs ao_pass.fs
+blur quad.vs blur.fs
 
 \depth_functions
 
@@ -787,6 +789,7 @@ uniform sampler2D u_normal_occ_tex;
 uniform sampler2D u_met_rough_tex;
 uniform sampler2D u_emmisive_tex;
 uniform sampler2D u_depth_tex;
+uniform sampler2D u_ambient_occlusion_tex;
 
 in vec2 v_uv;
 in mat4 v_viewprojection_inv;
@@ -802,7 +805,9 @@ void main()
 {
 	sFragData frag_data = getDataOfFragment(v_uv);
 
-	vec3 final_color = frag_data.albedo * (frag_data.occlusion * u_ambient_light);
+	float occlusion = min(frag_data.occlusion, texture(u_ambient_occlusion_tex, v_uv).r);
+
+	vec3 final_color = frag_data.albedo * (occlusion * u_ambient_light);
 
 	// Add emisivenes
 	final_color += texture(u_emmisive_tex, v_uv).rgb; 
@@ -914,6 +919,88 @@ void main()
 	FragColor = vec4(color * light_component, 1.0);
 }
 
+\ao_pass.fs
+
+#version 330 core
+
+const float PI = 3.14159226;
+
+uniform vec2 u_camera_nearfar;
+uniform vec3 u_camera_position;
+
+uniform sampler2D u_normal_occ_tex;
+uniform sampler2D u_depth_tex;
+
+uniform mat4 u_viewprojection;
+
+const int SAMPLE_SIZE = 64;
+uniform vec3 u_random_point[SAMPLE_SIZE];
+
+in vec2 v_uv;
+in mat4 v_viewprojection_inv;
+
+layout(location = 0) out float o_frag_ao;
+
+vec3 get_world_position_from_depth() {
+	float d = texture(u_depth_tex, v_uv).r;	
+	vec4 clip = vec4(v_uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
+	vec4 world_pos = v_viewprojection_inv * clip;
+
+	return world_pos.xyz / world_pos.w;
+}
+
+
+mat3 cotangentFrame(vec3 N, vec3 p, vec2 uv) {
+  // get edge vectors of the pixel triangle
+  vec3 dp1 = dFdx(p);
+  vec3 dp2 = dFdy(p);
+  vec2 duv1 = dFdx(uv);
+  vec2 duv2 = dFdy(uv);
+
+  // solve the linear system
+  vec3 dp2perp = cross(dp2, N);
+  vec3 dp1perp = cross(N, dp1);
+  vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
+  vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+
+  // construct a scale-invariant frame 
+  float invmax = 1.0 / sqrt(max(dot(T,T), dot(B,B)));
+  return mat3(normalize(T * invmax), normalize(B * invmax), N);
+}
+
+void main() {
+	vec3 world_pos = get_world_position_from_depth();
+
+	vec3 normal = texture(u_normal_occ_tex, v_uv).rgb;
+	normal = normalize(normal.rgb * 2.0 - 1.0);
+
+	mat3 rot_mat = cotangentFrame(normal, world_pos, v_uv);
+
+	float occlusion = 0.0;
+	for(int i = 0; i < SAMPLE_SIZE; i++) {
+		// Note: finetune the radius..?
+		vec3 sample_point = world_pos + (u_random_point[i]) * 10.0;
+		//vec3 sample_point = world_pos + (rot_mat * u_random_point[i]) * 10.0;
+		
+		// Get sample point's uv
+		vec4 proj_sample = u_viewprojection * vec4(sample_point, 1.0);
+		proj_sample.xy /= proj_sample.w; // To clip from hamaogenus space
+
+		// Convert the sample depth, with a bias
+		proj_sample.z = (proj_sample.z - 0.05) / proj_sample.w;
+
+		// From clip, to uv
+		proj_sample.xyz = (proj_sample.xyz * 0.5) + vec3(0.5);
+
+		float sample_depth = texture(u_depth_tex, proj_sample.xy).r;
+
+		float range_check = smoothstep(0.0, 1.0, 10.0 / abs(proj_sample.z - sample_depth));
+		occlusion += ((sample_depth >= proj_sample.z) ? 1.0 : 0.0) * range_check;
+	}
+	
+	o_frag_ao = (occlusion / float(SAMPLE_SIZE));
+}
+
 \instanced.vs
 
 #version 330 core
@@ -948,4 +1035,29 @@ void main()
 
 	//calcule the position of the vertex using the matrices
 	gl_Position = u_viewprojection * vec4( v_world_position, 1.0 );
+}
+
+
+\blur.fs
+
+#version 330 core
+
+in vec2 v_uv;
+
+uniform sampler2D u_to_blur_tex;
+
+layout(location = 0) out float o_frag_blur;
+
+void main() {
+	vec2 texel_size = 1.0 / vec2(textureSize(u_to_blur_tex, 0));
+	float result = 0.0;
+
+	for(int x = -2; x < 2; x++) {
+		for(int y = -2; y < 2; y++) {
+			vec2 offset = vec2(float(x), float(y)) * texel_size;
+			result += texture(u_to_blur_tex, v_uv + offset).x;
+		}
+	}
+
+	o_frag_blur = result / 16.0;
 }

@@ -3,6 +3,7 @@
 #include "fbo.h"
 #include "application.h"
 #include "shadows.h"
+#include "ambient_occlusion.h"
 #include <algorithm>
 
 //forward declarations
@@ -94,6 +95,7 @@ namespace GTR {
 			DEPTH,
 			WORLD_POS,
 			EMMISIVE,
+			AMBIENT_OCCLUSION,
 			DEFERRED_DEBUG_SIZE
 		};
 
@@ -107,6 +109,7 @@ namespace GTR {
 
 		FBO* deferred_gbuffer = NULL;
 		FBO* final_illumination_fbo = NULL;
+		FBO* ssao_fbo = NULL;
 
 		std::vector<sDrawCall> _opaque_objects;
 		std::vector<sDrawCall> _translucent_objects;
@@ -114,12 +117,14 @@ namespace GTR {
 		std::vector<LightEntity*> _scene_directional_lights;
 
 		ShadowRenderer shadowmap_renderer;
+		SSAO_Component ao_component;
 
 		eRenderPipe current_pipeline = DEFERRED;
 
 		// Debgging toggles for forward rendering
 		bool use_single_pass = true;
 		bool render_light_volumes = false;
+		bool use_ssao = true;
 
 		// Debugging for Deferred rendering
 		eDeferredDebugOutput deferred_output = RESULT;
@@ -227,7 +232,7 @@ namespace GTR {
 			ImGui::Checkbox("Linearize shadomap visualization", &liniearize_shadowmap_vis);
 
 			const char* rend_pipe[2] = { "FORWARD", "DEFERRED"};
-			const char* deferred_output_labels[DEFERRED_DEBUG_SIZE] = {"Final Result", "Color", "Normal", "Materials", "Emmisive", "Depth", "World pos."};
+			const char* deferred_output_labels[DEFERRED_DEBUG_SIZE] = {"Final Result", "Color", "Normal", "Materials", "Emmisive", "Depth", "World pos.", "Ambient occlusion"};
 			ImGui::Combo("Rendering pipeline", (int*) &current_pipeline, rend_pipe, IM_ARRAYSIZE(rend_pipe));
 
 			switch (current_pipeline) {
@@ -237,6 +242,7 @@ namespace GTR {
 			case DEFERRED:
 				ImGui::Combo("Deferred debug", (int*)&deferred_output, deferred_output_labels, IM_ARRAYSIZE(deferred_output_labels));
 				ImGui::Checkbox("Show Light volumes", &render_light_volumes);
+				ImGui::Checkbox("Use SSAO", &use_ssao);
 				break;
 			default:
 				break;

@@ -17,6 +17,8 @@ void GTR::Renderer::_init_deferred_renderer() {
 		GL_RGBA,
 		GL_UNSIGNED_BYTE,
 		true);
+
+	ao_component.init();
 }
 
 
@@ -147,6 +149,9 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene, Camera *cam) {
 	case MATERIAL:
 		deferred_gbuffer->color_textures[2]->toViewport();
 		break;
+	case AMBIENT_OCCLUSION:
+		ao_component.ao_fbo->color_textures[0]->toViewport();
+		break;
 	case EMMISIVE:
 		deferred_gbuffer->color_textures[3]->toViewport();
 		break;
@@ -160,6 +165,15 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene, Camera *cam) {
 } 
 
 void GTR::Renderer::renderDefferredPass(const Scene* scene) {
+	// Compute AO
+	Texture* ao_tex = NULL;
+	if (use_ssao) {
+		ao_tex = ao_component.compute_AO(deferred_gbuffer->depth_texture, deferred_gbuffer->color_textures[1], camera);
+	} else {
+
+		ao_tex = Texture::getWhiteTexture();
+	}
+
 	Shader* shader_pass = (deferred_output == WORLD_POS) ? Shader::Get("deferred_world_pos") : Shader::Get("deferred_pass");
 
 	final_illumination_fbo->bind();
@@ -175,6 +189,8 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 	shader_pass->setUniform("u_met_rough_tex", deferred_gbuffer->color_textures[2], 2);
 	shader_pass->setUniform("u_emmisive_tex", deferred_gbuffer->color_textures[3], 3);
 	shader_pass->setUniform("u_depth_tex", deferred_gbuffer->depth_texture, 4);
+	shader_pass->setUniform("u_ambient_occlusion_tex", ao_tex, 5);
+
 
 	shader_pass->setUniform("u_camera_nearfar", vec2(0.1, camera->far_plane));
 	shader_pass->setUniform("u_viewprojection", camera->viewprojection_matrix);

@@ -1,0 +1,70 @@
+{
+	"background_color":[0.01,0.01,0.1],
+	"ambient_light":[0.1,0.1,0.2],
+	"environment":"night.hdre",
+	"camera_position":[-12,9,-150],
+	"camera_target":[3,20,0],
+	"camera_fov":60,
+	"entities":[
+		{
+			"name":"spheres",
+			"type":"PREFAB",
+			"filename":"prefabs/MetalRoughSpheres.glb",
+			"position":[3,20,0],
+			"scale":[8,8,8],
+			"pbr_type": 1
+		},
+		{
+			"name":"spot",
+			"type":"LIGHT",
+			"position":[3, 20, 100],
+			"rotation":[0, -11.6, 0],
+			"angle": 180,
+			"color":[1,1,1],
+			"intensity":10,
+			"max_dist":1000,
+			"cone_angle":45,
+			"cone_exp":30,
+			"light_type":"SPOT",
+			"cast_shadows": true,
+			"shadow_bias": 0.001
+		},
+		{
+			"name":"spot2",
+			"type":"LIGHT",
+			"position":[3, 20, -100],
+			"rotation":[0, -11.6, 0],
+			"angle": 0,
+			"color":[1,1,1],
+			"intensity":10,
+			"max_dist":1000,
+			"cone_angle":45,
+			"cone_exp":30,
+			"light_type":"SPOT",
+			"cast_shadows": true,
+			"shadow_bias": 0.001
+		},
+		{
+			"name":"pointlight",
+			"type":"LIGHT",
+			"position":[-187,38,-156],
+			"angle": 0,
+			"color":[1,0.2,0.1],
+			"intensity":2.5,
+			"max_dist":70,
+			"light_type":"POINT"
+		},
+		{
+			"name":"moonlight",
+			"type":"LIGHT",
+			"position":[150,600,50],
+			"target":[-80,0,-50],
+			"color":[0.1,0.2,0.4],
+			"intensity":1.5,
+			"area_size":1500,
+			"max_dist":1000,
+			"cast_shadows": true,
+			"light_type":"DIRECTIONAL"
+		}
+	]
+}
