@@ -18,6 +18,8 @@ namespace GTR {
 
 		Mesh* quad_mesh;
 
+		Texture* noise_tex;
+
 		void init() {
 			ao_fbo = new FBO();
 
@@ -44,6 +46,18 @@ namespace GTR {
 			}
 
 			quad_mesh = Mesh::getQuad();
+
+			// Create noise texture
+			Image noise_img;
+			noise_img.fromScreen(8, 1);
+
+			for (uint8_t i = 0; i < 8; i++) {
+				//noise_img.setPixel(i, 0, Color({ ((float)rand()) / rand_max_f, ((float)rand()) / rand_max_f, 0.0f, 1.0f }));
+			}
+
+			noise_tex = new Texture(&noise_img);
+
+			noise_img.clear();
 		}
 
 

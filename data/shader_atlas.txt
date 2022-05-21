@@ -968,37 +968,52 @@ mat3 cotangentFrame(vec3 N, vec3 p, vec2 uv) {
   return mat3(normalize(T * invmax), normalize(B * invmax), N);
 }
 
+vec3 perpendicular(vec3 v)
+{
+	vec3 av = abs(v); 
+	if (av.x < av.y)
+		if (av.x < av.z) return vec3(0.0f, -v.z, v.y);
+		else return vec3(-v.y, v.x, 0.0f);
+	else
+		if (av.y < av.z) return vec3(-v.z, 0.0f, v.x);
+		else return vec3(-v.y, v.x, 0.0f);
+}
+
 void main() {
 	vec3 world_pos = get_world_position_from_depth();
 
 	vec3 normal = texture(u_normal_occ_tex, v_uv).rgb;
 	normal = normalize(normal.rgb * 2.0 - 1.0);
 
-	mat3 rot_mat = cotangentFrame(normal, world_pos, v_uv);
+	vec3 t = perpendicular(normal);
+	vec3 b = normalize(cross(normal, t));
+
+	//mat3 rot_mat = mat3(t,b, normal);
+	mat3 rot_mat = cotangentFrame(normal * 1.0, world_pos, v_uv);
 
 	float occlusion = 0.0;
 	for(int i = 0; i < SAMPLE_SIZE; i++) {
 		// Note: finetune the radius..?
-		vec3 sample_point = world_pos + (u_random_point[i]) * 10.0;
-		//vec3 sample_point = world_pos + (rot_mat * u_random_point[i]) * 10.0;
+		//vec3 sample_point = world_pos + (u_random_point[i]) * 10.0;
+		vec3 sample_point = world_pos + (rot_mat * u_random_point[i]) * 10.0;
 		
 		// Get sample point's uv
 		vec4 proj_sample = u_viewprojection * vec4(sample_point, 1.0);
 		proj_sample.xy /= proj_sample.w; // To clip from hamaogenus space
 
 		// Convert the sample depth, with a bias
-		proj_sample.z = (proj_sample.z - 0.05) / proj_sample.w;
+		proj_sample.z = (proj_sample.z - 0.005) / proj_sample.w;
 
 		// From clip, to uv
 		proj_sample.xyz = (proj_sample.xyz * 0.5) + vec3(0.5);
 
 		float sample_depth = texture(u_depth_tex, proj_sample.xy).r;
 
-		float range_check = smoothstep(0.0, 1.0, 10.0 / abs(proj_sample.z - sample_depth));
-		occlusion += ((sample_depth >= proj_sample.z) ? 1.0 : 0.0) * range_check;
+		float range_check = (abs(proj_sample.z - sample_depth) < 10.0) ? 1.0 : 0.0;
+		occlusion += ((sample_depth <= proj_sample.z) ? 1.0 : 0.0) * range_check;
 	}
 	
-	o_frag_ao = (occlusion / float(SAMPLE_SIZE));
+	o_frag_ao = 1.0 - (occlusion / float(SAMPLE_SIZE));
 }
 
 \instanced.vs
@@ -1048,16 +1063,18 @@ uniform sampler2D u_to_blur_tex;
 
 layout(location = 0) out float o_frag_blur;
 
+const float filter_size = 10.0;
+
 void main() {
 	vec2 texel_size = 1.0 / vec2(textureSize(u_to_blur_tex, 0));
 	float result = 0.0;
 
-	for(int x = -2; x < 2; x++) {
-		for(int y = -2; y < 2; y++) {
+	for(int x = int(filter_size / -2); x < (filter_size / 2); x++) {
+		for(int y = int(filter_size / -2); y < (filter_size / 2); y++) {
 			vec2 offset = vec2(float(x), float(y)) * texel_size;
 			result += texture(u_to_blur_tex, v_uv + offset).x;
 		}
 	}
 
-	o_frag_blur = result / 16.0;
+	o_frag_blur = result / (filter_size * filter_size);
 }
