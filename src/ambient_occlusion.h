@@ -52,7 +52,7 @@ namespace GTR {
 		void init() {
 			ao_fbo = new FBO();
 
-			ao_fbo->create(Application::instance->window_width / 1.f, Application::instance->window_height / 1.0f,
+			ao_fbo->create(Application::instance->window_width / 2.f, Application::instance->window_height / 2.0f,
 				2,
 				GL_LUMINANCE,
 				GL_UNSIGNED_BYTE,

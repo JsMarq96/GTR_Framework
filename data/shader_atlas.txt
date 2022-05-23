@@ -948,6 +948,11 @@ in mat4 v_viewprojection_inv;
 
 layout(location = 0) out float o_frag_ao;
 
+float linearize_depth(float d) {
+	float z_n = 2.0 * d - 1.0;
+	return 2.0 * u_near_far.x * u_near_far.y / (u_near_far.y + u_near_far.x - z_n * (u_near_far.y * u_near_far.x));
+}
+
 vec3 get_world_position_from_depth(float d) {
 	vec4 clip = vec4(v_uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
 	vec4 world_pos = v_viewprojection_inv * clip;
@@ -1001,7 +1006,7 @@ void main() {
 
 	mat3 rot_mat = rotateCotangentFrame(normal, world_pos, v_uv, random_angle);
 
-	float lineal_ao_distance = u_near_far.x * (u_ao_radius + 1.0) / (u_near_far.y + u_near_far.x - u_ao_radius * (u_near_far.y - u_near_far.x));
+	float lineal_ao_distance = linearize_depth(u_ao_radius);
 	//lineal_ao_distance += 0.2;
 	
 	float occlusion = 0.0;
@@ -1013,28 +1018,29 @@ void main() {
 		proj_sample.xy /= proj_sample.w; // To clip from hamaogenus space
 
 		// Convert the sample depth, with a bias
-		proj_sample.z = (proj_sample.z- 0.005) / proj_sample.w;
+		proj_sample.z = (proj_sample.z - 0.005) / proj_sample.w;
 
 		// From clip, to uv
 		proj_sample.xyz = (proj_sample.xyz * 0.5) + vec3(0.5);
 
 		// Get linear depth of both samples
 		float sample_depth = texture(u_depth_tex, proj_sample.xy).r;
-		float scalled_sample_depth = u_near_far.x * (sample_depth + 1.0) / (u_near_far.y + u_near_far.x - sample_depth * (u_near_far.y - u_near_far.x));
+		float scalled_sample_depth = linearize_depth(sample_depth);
 
-		float proj_depth = u_near_far.x * (proj_sample.z + 1.0) / (u_near_far.y + u_near_far.x - proj_sample.z * (u_near_far.y - u_near_far.x));
+		float proj_depth = linearize_depth(proj_sample.z);
 
 		float dist = scalled_sample_depth - proj_depth;
 
 		// If the samples are too far, avoid counting the sample
-		float range_check = smoothstep(u_near_far.x, u_near_far.y, sample_depth - proj_sample.z);
- 		if (dist < 0.0) {
-			occlusion += ((sample_depth <= proj_sample.z) ? 1.0 : 0.0);
+		//float range_check = smoothstep(u_near_far.x, u_near_far.y, sample_depth - proj_sample.z);
+ 		if (dist < 0.0 && dist > -10.9) {
+			occlusion += 1.0;//smoothstep(0.0, 1.0, -dist);
 			//occlusion += 1.0;
 		} else {
 			// Delete a sample that is far outside the range of the 
-			if ((dist) > lineal_ao_distance) {
-				//occlusion -= 0.80;
+
+			if (dist <= -10.9) {
+				occlusion += 0.50;
 			}
 		}
 	}
