@@ -1027,20 +1027,21 @@ void main() {
 		float dist = scalled_sample_depth - proj_depth;
 
 		// If the samples are too far, avoid counting the sample
- 		if (dist < 0.0 && (dist) < lineal_ao_distance) {
-			float range_check = smoothstep(0.0, 1.0, (u_ao_radius / abs(sample_depth - proj_sample.z)));
-			occlusion += ((sample_depth <= proj_sample.z) ? 1.0 : 0.0) * range_check;
+		float range_check = smoothstep(u_near_far.x, u_near_far.y, sample_depth - proj_sample.z);
+ 		if (dist < 0.0) {
+			occlusion += ((sample_depth <= proj_sample.z) ? 1.0 : 0.0);
 			//occlusion += 1.0;
 		} else {
 			// Delete a sample that is far outside the range of the 
 			if ((dist) > lineal_ao_distance) {
-				occlusion -= 0.50;
+				//occlusion -= 0.80;
 			}
 		}
 	}
 	
 	o_frag_ao = 1.0 - (occlusion / float(SAMPLE_SIZE));
 }
+
 
 \instanced.vs
 
