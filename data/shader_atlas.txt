@@ -1012,13 +1012,16 @@ void main() {
 	float occlusion = 0.0;
 	for(int i = 0; i < SAMPLE_SIZE; i++) {
 		vec3 sample_point = world_pos + (rot_mat * u_random_point[i]) * u_ao_radius;
+
+		// Horizontal vias
+		sample_point += vec3(0.0, 1.5, 0.00);
 		
 		// Get sample point's uv
 		vec4 proj_sample = u_viewprojection * vec4(sample_point, 1.0);
 		proj_sample.xy /= proj_sample.w; // To clip from hamaogenus space
 
 		// Convert the sample depth, with a bias
-		proj_sample.z = (proj_sample.z - 0.005) / proj_sample.w;
+		proj_sample.z = (proj_sample.z) / proj_sample.w;
 
 		// From clip, to uv
 		proj_sample.xyz = (proj_sample.xyz * 0.5) + vec3(0.5);
@@ -1032,20 +1035,30 @@ void main() {
 		float dist = scalled_sample_depth - proj_depth;
 
 		// If the samples are too far, avoid counting the sample
-		//float range_check = smoothstep(u_near_far.x, u_near_far.y, sample_depth - proj_sample.z);
- 		if (dist < 0.0 && dist > -10.9) {
+		/*if (dist < 0.0) { // dist > -10.9
 			occlusion += 1.0;//smoothstep(0.0, 1.0, -dist);
 			//occlusion += 1.0;
 		} else {
 			// Delete a sample that is far outside the range of the 
-
-			if (dist <= -10.9) {
-				occlusion += 0.50;
+			if (dist <= -u_ao_radius) {
+				//occlusion += 0.50;
+			}
+		}*/
+		//float range_check = smoothstep(u_near_far.x, u_near_far.y, sample_depth - proj_sample.z);
+ 		if (dist < 0.0 &&  dist > -u_ao_radius ) { // dist > -10.9
+			//occlusion += 1.0;//smoothstep(0.0, 1.0, -dist);
+			occlusion += smoothstep(-0.01,-u_ao_radius, dist);
+			//occlusion += 1.0;
+		} else {
+			// Delete a sample that is far outside the range of the 
+			if (dist <= -u_ao_radius && dist >= (-4.0 * u_ao_radius)) {
+				occlusion += smoothstep(-4.0 * u_ao_radius, -u_ao_radius, dist);
+				//occlusion += 0.50;
 			}
 		}
 	}
 	
-	o_frag_ao = 1.0 - (occlusion / float(SAMPLE_SIZE));
+	o_frag_ao = 0.9 - (occlusion / float(SAMPLE_SIZE));
 }
 
 
