@@ -127,9 +127,11 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene, Camera *cam) {
 		renderDeferredPlainDrawCall(_opaque_objects[i], scene);
 	}
 
+	glDepthMask(false);
 	for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
 		forwardOpacyRenderDrawCall(_translucent_objects[i], scene);
 	}
+	glDepthMask(true);
 
 	deferred_gbuffer->unbind();
 
@@ -150,7 +152,12 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene, Camera *cam) {
 		deferred_gbuffer->color_textures[2]->toViewport();
 		break;
 	case AMBIENT_OCCLUSION:
+		ao_component.compute_AO(deferred_gbuffer->depth_texture, deferred_gbuffer->color_textures[1], camera);
 		ao_component.ao_fbo->color_textures[0]->toViewport();
+		break;
+	case AMBIENT_OCCLUSION_BLUR:
+		ao_component.compute_AO(deferred_gbuffer->depth_texture, deferred_gbuffer->color_textures[1], camera);
+		ao_component.ao_fbo->color_textures[1]->toViewport();
 		break;
 	case EMMISIVE:
 		deferred_gbuffer->color_textures[3]->toViewport();
@@ -170,7 +177,6 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 	if (use_ssao) {
 		ao_tex = ao_component.compute_AO(deferred_gbuffer->depth_texture, deferred_gbuffer->color_textures[1], camera);
 	} else {
-
 		ao_tex = Texture::getWhiteTexture();
 	}
 

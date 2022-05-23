@@ -96,6 +96,7 @@ namespace GTR {
 			WORLD_POS,
 			EMMISIVE,
 			AMBIENT_OCCLUSION,
+			AMBIENT_OCCLUSION_BLUR,
 			DEFERRED_DEBUG_SIZE
 		};
 
@@ -232,7 +233,7 @@ namespace GTR {
 			ImGui::Checkbox("Linearize shadomap visualization", &liniearize_shadowmap_vis);
 
 			const char* rend_pipe[2] = { "FORWARD", "DEFERRED"};
-			const char* deferred_output_labels[DEFERRED_DEBUG_SIZE] = {"Final Result", "Color", "Normal", "Materials", "Emmisive", "Depth", "World pos.", "Ambient occlusion"};
+			const char* deferred_output_labels[DEFERRED_DEBUG_SIZE] = {"Final Result", "Color", "Normal", "Materials", "Emmisive", "Depth", "World pos.", "Ambient occlusion", "Ambient occlusion blurred"};
 			ImGui::Combo("Rendering pipeline", (int*) &current_pipeline, rend_pipe, IM_ARRAYSIZE(rend_pipe));
 
 			switch (current_pipeline) {
@@ -243,6 +244,9 @@ namespace GTR {
 				ImGui::Combo("Deferred debug", (int*)&deferred_output, deferred_output_labels, IM_ARRAYSIZE(deferred_output_labels));
 				ImGui::Checkbox("Show Light volumes", &render_light_volumes);
 				ImGui::Checkbox("Use SSAO", &use_ssao);
+				if (use_ssao) {
+					ImGui::SliderFloat("AO radius", &ao_component.ao_radius, 0.0f, 40.0f);
+				}
 				break;
 			default:
 				break;

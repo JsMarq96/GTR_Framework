@@ -88,20 +88,21 @@ Application::Application(int window_width, int window_height, SDL_Window* window
 
 
 	// Generate random points
-	/*srand(time);
+	srand(12670190);
 
 	float rand_max_f = (float)RAND_MAX;
-	for (uint32_t i = 0; i < 100000; i++) {
+	for (uint32_t i = 0; i < 64; i++) {
 		float x = ((float) rand()) / rand_max_f, z = ((float)rand()) / rand_max_f;
 		x *= 2.0f, z *= 2.0f;
 		x -= 1.0f, z -= 1.0f;
 		float y = sqrt((1.0f - (x*x) - (z*z)));
 
 		vec3 point = vec3(x, y, z);
-		point = lerp(vec3(0.0f, 0.0f, 0.0f), point, 1.02 * ((float)rand()) / rand_max_f);
+		float scale = (float)i / 64.0;
+		scale = lerp(0.1f, 1.0f, scale * scale);
 
-		points.push_back(point * 100.0f);
-	}*/
+		points.push_back(point *scale * 10.0f);
+	}
 }
 
 //what to do when the image has to be draw
@@ -141,7 +142,7 @@ void Application::render(void)
 
 	shad->enable();
 
-	shad->setUniform("u_color", vec4(1.0f, 1.0f, 1.0f, 0.1f));
+	shad->setUniform("u_color", vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
 	shad->setUniform("u_model", mat4());
 	shad->setUniform("u_viewprojection", camera->viewprojection_matrix);
