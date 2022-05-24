@@ -128,7 +128,7 @@ namespace GTR {
 		bool use_ssao = true;
 
 		// Debugging for Deferred rendering
-		eDeferredDebugOutput deferred_output = RESULT;
+		eDeferredDebugOutput deferred_output = AMBIENT_OCCLUSION;
 
 		bool show_shadowmap = false;
 		bool liniearize_shadowmap_vis = false;

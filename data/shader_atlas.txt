@@ -939,6 +939,8 @@ uniform vec2 u_noise_scale;
 uniform vec2 u_near_far;
 
 uniform mat4 u_viewprojection;
+uniform mat4 u_projection;
+uniform mat4 u_inv_projection;
 
 const int SAMPLE_SIZE = 64;
 uniform vec3 u_random_point[SAMPLE_SIZE];
@@ -949,13 +951,21 @@ in mat4 v_viewprojection_inv;
 layout(location = 0) out float o_frag_ao;
 
 float linearize_depth(float d) {
-	float z_n = 2.0 * d - 1.0;
-	return 2.0 * u_near_far.x * u_near_far.y / (u_near_far.y + u_near_far.x - z_n * (u_near_far.y * u_near_far.x));
+	return u_near_far.x * (d + 1.0) / (u_near_far.y + u_near_far.x - d * (u_near_far.y - u_near_far.x));
 }
 
 vec3 get_world_position_from_depth(float d) {
 	vec4 clip = vec4(v_uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
 	vec4 world_pos = v_viewprojection_inv * clip;
+
+	return world_pos.xyz / world_pos.w;
+}
+
+vec3 get_view_position_from_depth(vec2 uv) {
+	float d = texture(u_depth_tex, uv).r;
+	d = linearize_depth(d);
+	vec4 clip = vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
+	vec4 world_pos = u_inv_projection * clip;
 
 	return world_pos.xyz / world_pos.w;
 }
@@ -987,78 +997,47 @@ mat3 rotateCotangentFrame(vec3 N, vec3 p, vec2 uv, float angle) {
 
 void main() {
 	float sample_depth_raw = texture(u_depth_tex, v_uv).r;	
-	vec3 world_pos = get_world_position_from_depth(sample_depth_raw);
 
-	float curr_depth = u_near_far.x * (sample_depth_raw + 1.0) / (u_near_far.y + u_near_far.x - sample_depth_raw * (u_near_far.y - u_near_far.x));
-
-	// Discard if its too far away/sky
-	if (curr_depth >= 1.0) {
+	// Discard if its too far away/ or is sky
+	if (sample_depth_raw >= 1.0) {
 		o_frag_ao = 1.0;
 		return;
 	}
 
+	vec3 frag_view_pos = get_view_position_from_depth(v_uv);
+
 	vec3 normal = texture(u_normal_occ_tex, v_uv).rgb;
 	normal = normalize(normal.rgb * 2.0 - 1.0);
 
-	// Convert the random value (0,1) to (0, 0.6) radians
-	float random_angle = 0.01 + texture(u_noise_tex, v_uv * u_noise_scale * 40.0).x * 6.0;
-	//o_frag_ao = 0.01 + texture(u_noise_tex, v_uv * u_noise_scale * 4.0).x; return;
+	// Create TBN matrix
+	vec3 random_vec = texture(u_noise_tex, v_uv * u_noise_scale).xyz * 2.0 - 1.0;
+	vec3 tangent = normalize(random_vec - normal * dot(random_vec, normal));
+	vec3 bitangent = normalize(cross(normal, tangent));
+	mat3 rot_mat = mat3(tangent, bitangent, normal);
 
-	mat3 rot_mat = rotateCotangentFrame(normal, world_pos, v_uv, random_angle);
-
-	float lineal_ao_distance = linearize_depth(u_ao_radius);
-	//lineal_ao_distance += 0.2;
-	
 	float occlusion = 0.0;
 	for(int i = 0; i < SAMPLE_SIZE; i++) {
-		vec3 sample_point = world_pos + (rot_mat * u_random_point[i]) * u_ao_radius;
+		vec3 sample_point = frag_view_pos + (rot_mat * u_random_point[i]) * u_ao_radius;
 
-		// Horizontal vias
-		sample_point += vec3(0.0, 1.5, 0.00);
-		
-		// Get sample point's uv
-		vec4 proj_sample = u_viewprojection * vec4(sample_point, 1.0);
-		proj_sample.xy /= proj_sample.w; // To clip from hamaogenus space
+		// Bias
+		sample_point += normal * -0.50;
 
-		// Convert the sample depth, with a bias
-		proj_sample.z = (proj_sample.z) / proj_sample.w;
+		vec4 sample_ndc = u_projection * vec4(sample_point, 1.0);
+		vec2 sample_uv = (sample_ndc.xy / sample_ndc.w) * 0.5 + 0.5;
 
-		// From clip, to uv
-		proj_sample.xyz = (proj_sample.xyz * 0.5) + vec3(0.5);
-
-		// Get linear depth of both samples
-		float sample_depth = texture(u_depth_tex, proj_sample.xy).r;
-		float scalled_sample_depth = linearize_depth(sample_depth);
-
-		float proj_depth = linearize_depth(proj_sample.z);
-
-		float dist = scalled_sample_depth - proj_depth;
-
-		// If the samples are too far, avoid counting the sample
-		/*if (dist < 0.0) { // dist > -10.9
-			occlusion += 1.0;//smoothstep(0.0, 1.0, -dist);
-			//occlusion += 1.0;
-		} else {
-			// Delete a sample that is far outside the range of the 
-			if (dist <= -u_ao_radius) {
-				//occlusion += 0.50;
-			}
-		}*/
-		//float range_check = smoothstep(u_near_far.x, u_near_far.y, sample_depth - proj_sample.z);
- 		if (dist < 0.0 &&  dist > -u_ao_radius ) { // dist > -10.9
-			//occlusion += 1.0;//smoothstep(0.0, 1.0, -dist);
-			occlusion += smoothstep(-0.01,-u_ao_radius, dist);
-			//occlusion += 1.0;
-		} else {
-			// Delete a sample that is far outside the range of the 
-			if (dist <= -u_ao_radius && dist >= (-4.0 * u_ao_radius)) {
-				occlusion += smoothstep(-4.0 * u_ao_radius, -u_ao_radius, dist);
-				//occlusion += 0.50;
-			}
+		if (sample_uv.x > 1.0 || sample_uv.y > 1.0 || sample_uv.x < 0.0 || sample_uv.y < 0.0) {
+			continue;
 		}
+
+		vec3 rebuild_sample_pos = get_view_position_from_depth(sample_uv);
+
+		if (rebuild_sample_pos.z >= sample_point.z && (frag_view_pos.z - rebuild_sample_pos.z) <= u_ao_radius * 1.5) { 
+			occlusion += 1.0;
+		}
+
 	}
 	
-	o_frag_ao = 0.9 - (occlusion / float(SAMPLE_SIZE));
+	o_frag_ao = 1.0 - (occlusion / float(SAMPLE_SIZE));
 }
 
 
@@ -1109,7 +1088,7 @@ uniform sampler2D u_to_blur_tex;
 
 layout(location = 0) out float o_frag_blur;
 
-const float filter_size = 4.0;
+const float filter_size = 12.0;
 
 void main() {
 	vec2 texel_size = 1.0 / vec2(textureSize(u_to_blur_tex, 0));

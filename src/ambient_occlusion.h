@@ -26,7 +26,7 @@ namespace GTR {
 		return texture;
 	}
 
-	inline uint32_t upload_raw_texture_line(const float* data, const int size) {
+	inline uint32_t upload_raw_texture_square(const float* data, const int size) {
 		uint32_t texture;
 
 		glGenTextures(1, &texture);
@@ -49,10 +49,12 @@ namespace GTR {
 
 		float ao_radius = 10.0f;
 
+		uint32_t custom_noise_tex = 0;
+
 		void init() {
 			ao_fbo = new FBO();
 
-			ao_fbo->create(Application::instance->window_width / 2.f, Application::instance->window_height / 2.0f,
+			ao_fbo->create(Application::instance->window_width / 1.0f, Application::instance->window_height / 1.0f,
 				2,
 				GL_LUMINANCE,
 				GL_UNSIGNED_BYTE,
@@ -70,11 +72,20 @@ namespace GTR {
 				float y = ((float)rand()) / rand_max_f;
 
 				vec3 point = vec3(x, y, z);
-				float scale = (float)i / 64.0;
-				scale = lerp(0.1f, 1.0f, scale * scale);
+				//float scale = (float)i / 64.0;
+				//scale = lerp(0.1f, 1.0f, scale * scale);
 
-				_samples[i] = point * scale;
+				_samples[i] = point;
 			}
+
+			vec3 noise_vecs[16];
+			for (uint32_t i = 0; i < 16; i++) {
+				noise_vecs[i].x = (((float)rand()) / rand_max_f) * 2.0f - 1.0f;
+				noise_vecs[i].x = (((float)rand()) / rand_max_f) * 2.0f - 1.0f;
+				noise_vecs[i].z = 0.0;
+			}
+
+			custom_noise_tex = upload_raw_texture_square((float*) noise_vecs, 16);
 
 			quad_mesh = Mesh::getQuad();
 		}
@@ -93,16 +104,25 @@ namespace GTR {
 
 			shader->enable();
 
-			shader->setUniform("u_noise_scale", vec2(ao_fbo->width/512.0f, ao_fbo->height/512.0f));
+			Matrix44 inv_proj_mat = camera->projection_matrix;
+			inv_proj_mat.inverse();
+
 			shader->setUniform("u_viewprojection", camera->viewprojection_matrix);
+			shader->setUniform("u_inv_projection", inv_proj_mat);
+			shader->setUniform("u_projection", camera->projection_matrix);
 			shader->setUniform("u_near_far", vec2(camera->near_plane, camera->far_plane));
 			shader->setUniform3Array("u_random_point", (float*) _samples, AO_SAMPLE_SIZE);
 			shader->setUniform("u_ao_radius", ao_radius);
 			shader->setUniform("u_normal_occ_tex", normal_tex, 0);
 			shader->setUniform("u_depth_tex", depth_tex, 1);
+			
+			glActiveTexture(GL_TEXTURE0 + 2);
+			glBindTexture(GL_TEXTURE_2D, custom_noise_tex);
+			shader->setUniform1("u_noise_tex", 2);
+			shader->setUniform("u_noise_scale", vec2(ao_fbo->width / 4.0f, ao_fbo->height / 4.0f));
 
-			// Upload noise texutre
-			shader->setUniform("u_noise_tex", Texture::Get("data/noise_tex.png"), 2);
+			//shader->setUniform("u_noise_tex", Texture::Get("data/noise_tex.png"), 2);
+			//shader->setUniform("u_noise_scale", vec2(ao_fbo->width / 512.0f, ao_fbo->height / 512.0f));
 
 			quad_mesh->render(GL_TRIANGLES);
 
