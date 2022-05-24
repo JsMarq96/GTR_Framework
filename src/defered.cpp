@@ -5,6 +5,7 @@
 void GTR::Renderer::_init_deferred_renderer() {
 	deferred_gbuffer = new FBO();
 	final_illumination_fbo = new FBO();
+	tonemapping_fbo = new FBO();
 
 	deferred_gbuffer->create(Application::instance->window_width, Application::instance->window_height, 
 		4,
@@ -15,7 +16,12 @@ void GTR::Renderer::_init_deferred_renderer() {
 	final_illumination_fbo->create(Application::instance->window_width, Application::instance->window_height,
 		1,
 		GL_RGBA,
-		GL_UNSIGNED_BYTE,
+		GL_FLOAT,
+		true);
+	tonemapping_fbo->create(Application::instance->window_width, Application::instance->window_height,
+		1,
+		GL_RGBA,
+		GL_FLOAT,
 		true);
 
 	ao_component.init();
@@ -127,11 +133,11 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene, Camera *cam) {
 		renderDeferredPlainDrawCall(_opaque_objects[i], scene);
 	}
 
-	glDepthMask(false);
+	//glDepthMask(false);
 	for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
 		forwardOpacyRenderDrawCall(_translucent_objects[i], scene);
 	}
-	glDepthMask(true);
+	//glDepthMask(true);
 
 	deferred_gbuffer->unbind();
 
@@ -251,7 +257,28 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 	renderDeferredLightVolumes();
 
 	final_illumination_fbo->unbind();
-	final_illumination_fbo->color_textures[0]->toViewport();
+
+	tonemapping_fbo->bind();
+	tonemappingPass();
+	tonemapping_fbo->unbind();
+
+	tonemapping_fbo->color_textures[0]->toViewport();
+}
+
+void GTR::Renderer::tonemappingPass() {
+	glDisable(GL_DEPTH_TEST);
+	Mesh* quad = Mesh::getQuad();
+
+	Shader* shader = Shader::Get("tonemapping_pass");
+
+	shader->enable();
+
+	shader->setUniform("u_albedo_tex", final_illumination_fbo->color_textures[0], 0);
+
+	quad->render(GL_TRIANGLES);
+
+	shader->disable();
+	glEnable(GL_DEPTH_TEST);
 }
 
 void GTR:: Renderer::renderDeferredPlainDrawCall(const sDrawCall& draw_call, const Scene* scene) {

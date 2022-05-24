@@ -110,7 +110,7 @@ namespace GTR {
 
 		FBO* deferred_gbuffer = NULL;
 		FBO* final_illumination_fbo = NULL;
-		FBO* ssao_fbo = NULL;
+		FBO* tonemapping_fbo = NULL;
 
 		std::vector<sDrawCall> _opaque_objects;
 		std::vector<sDrawCall> _translucent_objects;
@@ -128,7 +128,7 @@ namespace GTR {
 		bool use_ssao = true;
 
 		// Debugging for Deferred rendering
-		eDeferredDebugOutput deferred_output = AMBIENT_OCCLUSION;
+		eDeferredDebugOutput deferred_output = RESULT;
 
 		bool show_shadowmap = false;
 		bool liniearize_shadowmap_vis = false;
@@ -144,6 +144,7 @@ namespace GTR {
 		void forwardMultiRenderDrawCall(const sDrawCall& draw_call, const Scene* scene);
 		void forwardOpacyRenderDrawCall(const sDrawCall& draw_call, const Scene* scene);
 		void renderDeferredLightVolumes();
+		void tonemappingPass();
 
 		void forwardRenderScene(const Scene* scene);
 		void deferredRenderScene(const Scene* scene, Camera *camera);

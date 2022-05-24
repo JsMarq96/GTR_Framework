@@ -245,13 +245,13 @@ void GTR::LightEntity::renderInMenu() {
 	ImGui::Checkbox("Visible", &visible); // Edit 3 floats representing a color
 
 	ImGui::ColorEdit3("Light color", (float*) &color);
-	ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f);
+	ImGui::SliderFloat("Intensity", &intensity, 20.0f, 500.0f);
 	ImGui::SliderFloat("Max. distance", &max_distance, 0.0f, 1500.0f);
 
 	switch (light_type) {
 	case SPOT_LIGHT:
 		ImGui::SliderFloat("Cone angle", &cone_angle, 0.0f, 357.0f);
-		ImGui::SliderFloat("Cone exp. decay", &cone_exp_decay, 0.0f, 60.0f);
+		ImGui::SliderFloat("Cone exp. decay", &cone_exp_decay, 0.0f, 180.0f);
 		break;
 	case DIRECTIONAL_LIGHT:
 		ImGui::SliderFloat("Area size", &area_size, 0.0f, 2000.0f);

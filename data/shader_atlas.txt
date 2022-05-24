@@ -12,6 +12,7 @@ deferred_lightpass basic.vs deferred_lightpass.fs
 deferred_pass quad.vs deferred_pass.fs
 deferred_world_pos quad.vs deferred_world_pos.fs
 ao_pass quad.vs ao_pass.fs
+tonemapping_pass quad.vs tonemapping_pass.fs
 blur quad.vs blur.fs
 
 \depth_functions
@@ -669,6 +670,16 @@ vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
 	return (specular + diffuse) * vects.attenuation;
 }
 
+\hdr_tonemapping
+
+vec3 de_gamma(const in vec3 color) {
+	return pow(color, vec3(2.2));
+}
+
+vec3 gamma(const in vec3 color) {
+	return pow(color, vec3(1.0/2.2));
+}
+
 \frag_data
 
 struct sFragData {
@@ -736,6 +747,8 @@ vec3 get_world_position_from_depth(const in vec2 uv) {
 	return world_pos.xyz / world_pos.w;
 }
 
+#include "hdr_tonemapping"
+
 sFragData getDataOfFragment(const in vec2 uv) {
 	sFragData mat;
 
@@ -743,7 +756,7 @@ sFragData getDataOfFragment(const in vec2 uv) {
 	mat.roughness = mrt.r;
 	mat.metalness = mrt.g;
 
-	mat.albedo = texture(u_albedo_tex, uv).rgb;
+	mat.albedo = de_gamma(texture(u_albedo_tex, uv).rgb);
 
 	vec4 norm_occ = texture(u_normal_occ_tex, uv);
 	mat.normal = normalize(norm_occ.rgb * 2.0 - 1.0);
@@ -807,10 +820,10 @@ void main()
 
 	float occlusion = min(frag_data.occlusion, texture(u_ambient_occlusion_tex, v_uv).r);
 
-	vec3 final_color = frag_data.albedo * (occlusion * u_ambient_light);
+	vec3 final_color = frag_data.albedo * (occlusion * (u_ambient_light));
 
 	// Add emisivenes
-	final_color += texture(u_emmisive_tex, v_uv).rgb; 
+	final_color += de_gamma(texture(u_emmisive_tex, v_uv).rgb); 
 
 	// Only for directiona lights
 	for(int i = 0; i < MAX_LIGHT; i++) {
@@ -829,7 +842,7 @@ void main()
 
 		vec3 color = get_pbr_color(frag_data, light_vects);
 		
-		vec3 light_component = (light_vects.n_dot_l * u_light_color[i]) * u_light_intensities[i];
+		vec3 light_component = (light_vects.n_dot_l * de_gamma(u_light_color[i])) * u_light_intensities[i];
 
 		final_color += color * light_component;
 	}
@@ -910,13 +923,42 @@ void main()
 	if (u_light_type == 2) { // Spot light
 		if (light_vects.l_dot_d >= u_light_cone_angle) {
 			// If the fragment to light direction is inside the angle of the spotlight
-			light_component += (pow(light_vects.l_dot_d, u_light_cone_decay) * light_vects.n_dot_l * u_light_color) * u_light_intensities;
+			light_component += (pow(light_vects.l_dot_d, u_light_cone_decay) * light_vects.n_dot_l * de_gamma(u_light_color)) * u_light_intensities;
 		}
 	} else { // For point light
-		light_component += (light_vects.n_dot_l * u_light_color) * u_light_intensities;
+		light_component += (light_vects.n_dot_l * de_gamma(u_light_color)) * u_light_intensities;
 	}
 	
 	FragColor = vec4(color * light_component, 1.0);
+}
+
+\tonemapping_pass.fs
+
+#version 330 core
+
+in vec2 v_uv;
+
+uniform sampler2D u_albedo_tex;
+
+layout(location = 0) out vec4 o_color;
+
+#include "hdr_tonemapping"
+
+// Source http://filmicworlds.com/blog/filmic-tonemapping-operators/
+const float A = 0.15;
+const float B = 0.50;
+const float C = 0.10;
+const float D = 0.20;
+const float E = 0.02;
+const float F = 0.30;
+const float W = 11.2;
+
+vec3 Uncharted2Tonemap(vec3 x) {
+   return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
+}
+
+void main() {
+	o_color = vec4(gamma( Uncharted2Tonemap(texture(u_albedo_tex, v_uv).rgb)), 1.0);
 }
 
 \ao_pass.fs

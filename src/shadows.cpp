@@ -20,8 +20,12 @@ void GTR::ShadowRenderer::render_light(sShadowDrawCall& draw_call, Matrix44 &vp_
 
 	for (uint16_t i = 0; i < draw_call.obj_cout; i++) {
 		//upload uniforms
+		Texture* tex = draw_call.albedo_textures[i];
+		if (tex == NULL) {
+			tex = Texture::getWhiteTexture();
+		}
 		shader->setUniform("u_viewprojection", vp_matrix);
-		shader->setUniform("u_texture", draw_call.albedo_textures[i], 0);
+		shader->setUniform("u_texture", tex, 0);
 		shader->setUniform("u_alpha_cutoff", draw_call.alpha_cutoffs[i]);
 		shader->setUniform("u_model", draw_call.models[i]);
 
