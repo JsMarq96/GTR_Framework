@@ -288,6 +288,22 @@ void Renderer::renderMeshWithMaterial(const Matrix44 model, Mesh* mesh, GTR::Mat
 
 void Renderer::init() {
 	shadowmap_renderer.init();
+	ao_component.init();
+
+	final_illumination_fbo = new FBO();
+	tonemapping_fbo = new FBO();
+
+	final_illumination_fbo->create(Application::instance->window_width, Application::instance->window_height,
+		1,
+		GL_RGBA,
+		GL_FLOAT,
+		true);
+
+	tonemapping_fbo->create(Application::instance->window_width, Application::instance->window_height,
+		1,
+		GL_RGBA,
+		GL_FLOAT,
+		true);
 
 	// No need to add any preparations for forward renderer
 	_init_deferred_renderer();

@@ -2,6 +2,12 @@
 
 // Definition of the forward renderer functions
 void GTR::Renderer::forwardRenderScene(const Scene *scene) {
+	final_illumination_fbo->bind();
+
+	final_illumination_fbo->enableSingleBuffer(0);
+	glClearColor(0.1, 0.1, 0.1, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	if (use_single_pass) {
 		// First, render the opaque object
 		for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
@@ -24,6 +30,25 @@ void GTR::Renderer::forwardRenderScene(const Scene *scene) {
 			forwardMultiRenderDrawCall(_translucent_objects[i], scene);
 		}
 	}
+	final_illumination_fbo->unbind();
+
+	tonemapping_fbo->bind();
+
+	glDisable(GL_DEPTH_TEST);
+	Mesh* quad = Mesh::getQuad();
+
+	Shader* shader = Shader::Get("tonemapping_pass");
+
+	shader->enable();
+	shader->setUniform("u_albedo_tex", final_illumination_fbo->color_textures[0], 0);
+	quad->render(GL_TRIANGLES);
+	shader->disable();
+
+	glEnable(GL_DEPTH_TEST);
+
+	tonemapping_fbo->unbind();
+
+	tonemapping_fbo->color_textures[0]->toViewport();
 }
 
 inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Scene* scene) {
@@ -52,7 +77,7 @@ inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_cal
 	assert(glGetError() == GL_NO_ERROR);
 
 	//chose a shader
-	shader = Shader::Get("single_phong");
+	shader = Shader::Get("forward_singlepass_pbr");
 
 	assert(glGetError() == GL_NO_ERROR);
 
@@ -87,6 +112,7 @@ inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_cal
 	// Material properties
 	shader->setUniform("u_color", draw_call.material->color);
 	int enabled_texteres = bind_textures(draw_call.material, shader);
+	shader->setUniform("u_ambient_occlusion_tex", Texture::getWhiteTexture(), 5);
 
 	shader->setUniform("u_enabled_texteres", enabled_texteres);
 

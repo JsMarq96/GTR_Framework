@@ -1,16 +1,22 @@
 //example of some shaders compiled
+// Basic /  Base shaders
 flat basic.vs flat.fs
 shadow_flat basic.vs shadow_flat.fs
 texture basic.vs texture.fs
 depth quad.vs depth.fs
 multi basic.vs multi.fs
+// Phong
 multi_phong basic.vs multi_phong.fs
 single_phong basic.vs single_phong.fs
+// Forward - PBR
+forward_singlepass_pbr basic.vs forward_singlepass_pbr.fs
+// Deferred -PBR
 deferred_plane_opaque basic.vs deferred_plain_opaque.fs
 deferred_plane_traslucent basic.vs deferred_plain_traslucent.fs
 deferred_lightpass basic.vs deferred_lightpass.fs
 deferred_pass quad.vs deferred_pass.fs
 deferred_world_pos quad.vs deferred_world_pos.fs
+// Render Passes & Effects
 ao_pass quad.vs ao_pass.fs
 tonemapping_pass quad.vs tonemapping_pass.fs
 blur quad.vs blur.fs
@@ -690,6 +696,7 @@ struct sFragData {
 	vec3 f0;
 
 	vec3 albedo;
+	vec3 emmisive;
 
 	float occlusion;
 
@@ -712,6 +719,7 @@ struct sFragVects {
 	float attenuation;
 };
 
+\deferred_fragment_data
 sFragVects getVectsOfFragment(const in sFragData mat, const in vec3 light_pos, const in vec3 light_direction, const in float light_max_dist, const in int light_type) {
 	sFragVects vects;
 
@@ -770,6 +778,64 @@ sFragData getDataOfFragment(const in vec2 uv) {
 	return mat;
 }
 
+
+\forward_fragment_data
+
+sFragVects getVectsOfFragment(const in sFragData mat, const in vec3 light_pos, const in vec3 light_direction, const in float light_max_dist, const in int light_type) {
+	sFragVects vects;
+
+	if (light_type == 1) { // Directional light
+		vects.l = normalize(light_direction);
+		vects.attenuation = 1.0; // No atenuation for the directional/sun/moon light
+	} else {
+		vects.l = normalize(light_pos - mat.world_pos);
+		vects.attenuation = light_max_dist - length(mat.world_pos - light_pos);
+		vects.attenuation = max(vects.attenuation / light_max_dist, 0.0); 
+		vects.attenuation *= vects.attenuation;
+	}
+	
+	vec3 D = normalize(light_direction);
+	vec3 v = normalize(u_camera_position - mat.world_pos);
+	vec3 half_v = normalize(v + vects.l);
+
+	vects.l_dot_d = clamp(dot(D, vects.l), 0.0001, 1.0);
+	vects.l_dot_h = clamp(dot(half_v, vects.l), 0.0001, 1.0);
+
+	vects.n_dot_v = clamp(dot(mat.normal, v), 0.0001, 1.0);
+	vects.n_dot_h = clamp(dot(mat.normal, half_v), 0.0001, 1.0);
+	vects.n_dot_l = clamp(dot(mat.normal, vects.l), 0.0001, 1.0);
+
+	return vects;
+}
+
+#include "hdr_tonemapping"
+
+sFragData getDataOfFragment(const in vec2 uv) {
+	sFragData mat;
+
+	vec4 mrt = texture(u_met_rough_tex, uv);
+	mat.roughness = mrt.r;
+	mat.metalness = mrt.g;
+
+	mat.albedo = de_gamma(u_color.rgb * texture(u_texture, uv).rgb);
+
+	vec3 N = normalize(v_normal);
+	if (length(texture( u_normal_tex, v_uv ).rgb) > 0.0) {
+		N = perturbNormal(normalize(v_normal), v_world_position, v_uv);
+	}
+	mat.normal = N;
+
+	mat.emmisive = texture( u_emmisive_tex, v_uv ).rgb;
+	mat.occlusion = min(texture( u_occlusion_tex, v_uv ).r, texture(u_ambient_occlusion_tex, v_uv).r);
+
+	mat.world_pos = v_world_position;
+
+	mat.f0 = mix(vec3(0.001), mat.albedo, mat.metalness);
+	mat.alpha = mat.roughness * mat.roughness;
+
+	return mat;
+}
+
 \deferred_pass.fs
 
 #version 330 core
@@ -811,6 +877,7 @@ out vec4 FragColor;
 
 #include "depth_functions"
 #include "frag_data"
+#include "deferred_fragment_data"
 #include "pbr"
 
 
@@ -896,6 +963,7 @@ out vec4 FragColor;
 
 #include "depth_functions"
 #include "frag_data"
+#include "deferred_fragment_data"
 #include "pbr"
 
 void main()
@@ -1144,4 +1212,110 @@ void main() {
 	}
 
 	o_frag_blur = result / (filter_size * filter_size);
+}
+
+
+
+\forward_singlepass_pbr.fs
+
+#version 330 core
+
+const float PI = 3.14159226;
+
+in vec3 v_position;
+in vec3 v_world_position;
+in vec3 v_normal;
+in vec2 v_uv;
+in vec4 v_color;
+in vec2 v_frag_shadow_uv;
+
+uniform float u_time;
+uniform float u_alpha_cutoff;
+
+// Material data
+uniform vec4 u_color;
+uniform sampler2D u_texture;
+uniform sampler2D u_emmisive_tex;
+uniform sampler2D u_met_rough_tex;
+uniform sampler2D u_normal_tex;
+uniform sampler2D u_occlusion_tex;
+uniform sampler2D u_ambient_occlusion_tex;
+
+uniform vec3 u_camera_position;
+
+// Light data
+uniform vec3 u_ambient_light;
+const int MAX_LIGHT = 7;
+uniform int u_light_shadow_id[MAX_LIGHT];
+uniform vec3 u_light_pos[MAX_LIGHT];
+uniform vec3 u_light_color[MAX_LIGHT];
+uniform int u_light_type[MAX_LIGHT];
+uniform float u_light_max_dist[MAX_LIGHT];
+uniform float u_light_intensities[MAX_LIGHT];
+uniform int u_num_lights;
+
+// Shadows uniforms
+const int MAX_SHADOWS = 7;
+uniform sampler2D u_shadow_map;
+uniform mat4 u_shadow_vp[MAX_LIGHT];
+uniform float u_shadow_bias;
+
+// Spot light uniforms
+uniform float u_light_cone_angle[MAX_LIGHT];
+uniform float u_light_cone_decay[MAX_LIGHT];
+uniform vec3 u_light_direction[MAX_LIGHT];
+
+out vec4 FragColor;
+#include "depth_functions"
+#include "normal_functions"
+#include "frag_data"
+#include "forward_fragment_data"
+#include "pbr"
+
+void main()
+{
+	vec4 color = texture( u_texture, v_uv );
+
+	if(color.a < u_alpha_cutoff)
+		discard;
+
+	// Load fragment
+	sFragData frag_data = getDataOfFragment(v_uv);
+
+	vec3 final_color = frag_data.albedo * (frag_data.occlusion * (u_ambient_light));
+	vec3 light_component = vec3(0.0);
+	for(int i = 0; i < MAX_LIGHT; i++) {
+		if (i >= u_num_lights) {
+			continue;
+		}
+
+		float shadow_compoment = 1.0;
+
+		if (u_light_type[i] != 1) { // Calculate if its in shadow if its not a point-light
+			shadow_compoment = get_shadow_component(i, frag_data.world_pos);
+		}
+
+		if (shadow_compoment == 0) {
+			continue;
+		}
+
+		sFragVects light_vects = getVectsOfFragment(frag_data, u_light_pos[i], u_light_direction[i], u_light_max_dist[i], u_light_type[i]);
+
+		// Quadratic light attenuation
+		float light_attenuation = u_light_max_dist[i] - length(u_light_pos[i] - v_world_position);
+		light_attenuation = max(light_attenuation / u_light_max_dist[i], 0.0); 
+		light_attenuation *= light_attenuation;
+
+		if (u_light_type[i] == 2) { // Spot light
+			if (light_vects.l_dot_d >= u_light_cone_angle[i]) {
+				// If the fragment to light direction is inside the angle of the spotlight
+				light_component += (pow(light_vects.l_dot_d, u_light_cone_decay[i]) * light_vects.n_dot_l * de_gamma(u_light_color[i])) * u_light_intensities[i];
+			}
+		} else { // For point light
+			light_component += (light_vects.n_dot_l * de_gamma(u_light_color[i])) * u_light_intensities[i];
+		}
+		final_color += light_component * get_pbr_color(frag_data, light_vects);
+	}
+
+	FragColor = vec4(final_color, 1.0);
 }

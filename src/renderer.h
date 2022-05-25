@@ -120,7 +120,7 @@ namespace GTR {
 		ShadowRenderer shadowmap_renderer;
 		SSAO_Component ao_component;
 
-		eRenderPipe current_pipeline = DEFERRED;
+		eRenderPipe current_pipeline = FORWARD;
 
 		// Debgging toggles for forward rendering
 		bool use_single_pass = true;

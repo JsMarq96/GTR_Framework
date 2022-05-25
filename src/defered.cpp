@@ -4,27 +4,12 @@
 
 void GTR::Renderer::_init_deferred_renderer() {
 	deferred_gbuffer = new FBO();
-	final_illumination_fbo = new FBO();
-	tonemapping_fbo = new FBO();
 
 	deferred_gbuffer->create(Application::instance->window_width, Application::instance->window_height, 
 		4,
 		GL_RGBA, 
 		GL_FLOAT,  // Enought..? Now, yes
 		true);
-
-	final_illumination_fbo->create(Application::instance->window_width, Application::instance->window_height,
-		1,
-		GL_RGBA,
-		GL_FLOAT,
-		true);
-	tonemapping_fbo->create(Application::instance->window_width, Application::instance->window_height,
-		1,
-		GL_RGBA,
-		GL_FLOAT,
-		true);
-
-	ao_component.init();
 }
 
 
