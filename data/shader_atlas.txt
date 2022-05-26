@@ -1050,6 +1050,7 @@ uniform vec2 u_near_far;
 
 uniform mat4 u_viewprojection;
 uniform mat4 u_projection;
+uniform mat4 u_view;
 uniform mat4 u_inv_projection;
 
 const int SAMPLE_SIZE = 64;
@@ -1058,10 +1059,15 @@ uniform vec3 u_random_point[SAMPLE_SIZE];
 in vec2 v_uv;
 in mat4 v_viewprojection_inv;
 
-layout(location = 0) out float o_frag_ao;
+layout(location = 0) out vec3 o_frag_ao;
 
 float linearize_depth(float d) {
-	return u_near_far.x * (d + 1.0) / (u_near_far.y + u_near_far.x - d * (u_near_far.y - u_near_far.x));
+    //return 0.5 * (- u_projection[2].z * d + u_projection[3].z) / d + 0.5;
+	//n * (z + 1.0) / (f + n - z * (f - n))
+	float dp = 2.0 * d - 1.0;
+	return u_near_far.x * (dp + 1.0) / (u_near_far.y + u_near_far.x - dp * (u_near_far.y - u_near_far.x));
+
+	//return 2.0 * u_near_far.x * u_near_far.y / (u_near_far.y + u_near_far.x - dp * (u_near_far.y - u_near_far.x));
 }
 
 vec3 get_world_position_from_depth(float d) {
@@ -1073,81 +1079,87 @@ vec3 get_world_position_from_depth(float d) {
 
 vec3 get_view_position_from_depth(vec2 uv) {
 	float d = texture(u_depth_tex, uv).r;
-	d = linearize_depth(d);
+	//d = linearize_depth(d);
 	vec4 clip = vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
 	vec4 world_pos = u_inv_projection * clip;
 
 	return world_pos.xyz / world_pos.w;
 }
 
-mat3 rotateCotangentFrame(vec3 N, vec3 p, vec2 uv, float angle) {
+mat3 rotateCotangentFrame(vec3 N, vec3 p, vec2 uv) {
   // get edge vectors of the pixel triangle
-  vec3 dp1 = dFdx(p);
-  vec3 dp2 = dFdy(p);
-  vec2 duv1 = dFdx(uv);
-  vec2 duv2 = dFdy(uv);
-
-  // solve the linear system
-  vec3 dp2perp = cross(dp2, N);
-  vec3 dp1perp = cross(N, dp1);
-  vec3 T = normalize(dp2perp * duv1.x + dp1perp * duv2.x);
-
-  // Rotate the T vector arround the normal
-  float cos_angle = cos(angle);
-  float sin_angle = sin(angle);
-  T = T * cos_angle + (cross(N, T) * sin_angle) + T * (dot(N, T) * (1.0 - cos_angle));
-  T = normalize(T);
-
-  vec3 B = normalize(cross(N, T));
-
-  // construct a scale-invariant frame 
-  float invmax = 1.0 / sqrt(max(dot(T,T), dot(B,B)));
-  return mat3(normalize(T * invmax), normalize(B * invmax), N);
+	vec3 dp1 = dFdx( p );
+	vec3 dp2 = dFdy( p );
+	vec2 duv1 = dFdx( uv );
+	vec2 duv2 = dFdy( uv );
+	
+	// solve the linear system
+	vec3 dp2perp = cross( dp2, N );
+	vec3 dp1perp = cross( N, dp1 );
+	vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
+	vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+ 
+	// construct a scale-invariant frame 
+	float invmax = inversesqrt( max( dot(T,T), dot(B,B) ) );
+	return mat3( T * invmax, B * invmax, N );
 }
 
 void main() {
-	float sample_depth_raw = texture(u_depth_tex, v_uv).r;	
+	float sample_depth = texture(u_depth_tex, v_uv).r;	
 
 	// Discard if its too far away/ or is sky
-	if (sample_depth_raw >= 1.0) {
-		o_frag_ao = 1.0;
+	if (sample_depth >= 1.0) {
+		o_frag_ao = vec3(1.0);
 		return;
 	}
 
 	vec3 frag_view_pos = get_view_position_from_depth(v_uv);
+	vec3 world = get_world_position_from_depth(sample_depth);
 
 	vec3 normal = texture(u_normal_occ_tex, v_uv).rgb;
 	normal = normalize(normal.rgb * 2.0 - 1.0);
 
+	normal = (u_view * vec4(normal, 0.0)).xyz;
+
 	// Create TBN matrix
-	vec3 random_vec = texture(u_noise_tex, v_uv * u_noise_scale).xyz * 2.0 - 1.0;
+	vec3 random_vec = (vec3(texture(u_noise_tex, v_uv * u_noise_scale).xy * 2.0 - 1.0, 0.0));
 	vec3 tangent = normalize(random_vec - normal * dot(random_vec, normal));
-	vec3 bitangent = normalize(cross(normal, tangent));
+
+
+    //tangent = normalize(tangent);
+	vec3 bitangent = (cross(normal, tangent));
 	mat3 rot_mat = mat3(tangent, bitangent, normal);
 
+	//rot_mat = rotateCotangentFrame(normal, world, v_uv);
+
 	float occlusion = 0.0;
+	 vec3 rebuild_sample_pos = vec3(0.0);
 	for(int i = 0; i < SAMPLE_SIZE; i++) {
-		vec3 sample_point = frag_view_pos + (rot_mat * u_random_point[i]) * u_ao_radius;
+		vec3 sample_point = (frag_view_pos) + (normalize(rot_mat * u_random_point[i]) * u_ao_radius);
 
 		// Bias
-		sample_point += normal * -0.50;
+		//sample_point += normal * 1.5;
 
 		vec4 sample_ndc = u_projection * vec4(sample_point, 1.0);
 		vec2 sample_uv = (sample_ndc.xy / sample_ndc.w) * 0.5 + 0.5;
 
 		if (sample_uv.x > 1.0 || sample_uv.y > 1.0 || sample_uv.x < 0.0 || sample_uv.y < 0.0) {
-			continue;
+			//continue;
 		}
 
-		vec3 rebuild_sample_pos = get_view_position_from_depth(sample_uv);
+		rebuild_sample_pos = get_view_position_from_depth(sample_uv);
 
-		if (rebuild_sample_pos.z >= sample_point.z && (frag_view_pos.z - rebuild_sample_pos.z) <= u_ao_radius * 1.5) { 
+		if (rebuild_sample_pos.z >= sample_point.z && abs(rebuild_sample_pos.z - frag_view_pos.z) <= u_ao_radius) { 
 			occlusion += 1.0;
 		}
 
 	}
 	
-	o_frag_ao = 1.0 - (occlusion / float(SAMPLE_SIZE));
+	o_frag_ao = vec3(1.0 - (occlusion / float(SAMPLE_SIZE)));
+	o_frag_ao = o_frag_ao * o_frag_ao;
+	//o_frag_ao = (u_view * vec4(normal, 0.0)).xyz;
+	//o_frag_ao = rot_mat * vec3(0.0, 1.0, 0.0);
+	//o_frag_ao = vec3(rebuild_sample_pos.z * 20, 0.0, 0.0);
 }
 
 
@@ -1196,18 +1208,18 @@ in vec2 v_uv;
 
 uniform sampler2D u_to_blur_tex;
 
-layout(location = 0) out float o_frag_blur;
+layout(location = 0) out vec3 o_frag_blur;
 
-const float filter_size = 12.0;
+const float filter_size = 10.0;
 
 void main() {
 	vec2 texel_size = 1.0 / vec2(textureSize(u_to_blur_tex, 0));
-	float result = 0.0;
+	vec3 result = vec3(0.0);
 
 	for(int x = int(filter_size / -2); x < (filter_size / 2); x++) {
 		for(int y = int(filter_size / -2); y < (filter_size / 2); y++) {
 			vec2 offset = vec2(float(x), float(y)) * texel_size;
-			result += texture(u_to_blur_tex, v_uv + offset).x;
+			result += texture(u_to_blur_tex, v_uv + offset).rgb;
 		}
 	}
 

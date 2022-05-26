@@ -1,4 +1,4 @@
-#define once
+#pragma once
 
 #include "includes.h"
 #include "scene.h"
@@ -56,7 +56,7 @@ namespace GTR {
 
 			ao_fbo->create(Application::instance->window_width / 1.0f, Application::instance->window_height / 1.0f,
 				2,
-				GL_LUMINANCE,
+				GL_RGB,
 				GL_UNSIGNED_BYTE,
 				false);
 
@@ -72,10 +72,30 @@ namespace GTR {
 				float y = ((float)rand()) / rand_max_f;
 
 				vec3 point = vec3(x, y, z);
-				//float scale = (float)i / 64.0;
-				//scale = lerp(0.1f, 1.0f, scale * scale);
+				float scale = (float)i / 64.0;
+				scale = lerp(0.1f, 1.0f, scale * scale);
 
 				_samples[i] = point;
+			}
+
+			for (int i = 0; i < AO_SAMPLE_SIZE; i += 1) {
+				Vector3& p = _samples[i];
+				float u = random();
+				float v = random();
+				float theta = u * 2.0 * PI;
+				float phi = acos(2.0 * v - 1.0);
+				float r = cbrt(random() * 0.9 + 0.1) * 1.0;
+				float sinTheta = sin(theta);
+				float cosTheta = cos(theta);
+				float sinPhi = sin(phi);
+				float cosPhi = cos(phi);
+				p.x = r * sinPhi * cosTheta;
+				p.y = r * sinPhi * sinTheta;
+				p.z = r * cosPhi;
+				if (p.z < 0)
+					p.z *= -1.0;
+
+				p = p.normalize();
 			}
 
 			vec3 noise_vecs[16];
@@ -83,12 +103,16 @@ namespace GTR {
 				noise_vecs[i].x = (((float)rand()) / rand_max_f) * 2.0f - 1.0f;
 				noise_vecs[i].x = (((float)rand()) / rand_max_f) * 2.0f - 1.0f;
 				noise_vecs[i].z = 0.0;
+
+				noise_vecs[i] = noise_vecs[i].normalize();
 			}
 
 			custom_noise_tex = upload_raw_texture_square((float*) noise_vecs, 16);
 
 			quad_mesh = Mesh::getQuad();
 		}
+
+
 
 
 		Texture* compute_AO(Texture* depth_tex, Texture* normal_tex, const Camera *camera) {
@@ -107,6 +131,7 @@ namespace GTR {
 			Matrix44 inv_proj_mat = camera->projection_matrix;
 			inv_proj_mat.inverse();
 
+			shader->setUniform("u_view", camera->view_matrix);
 			shader->setUniform("u_viewprojection", camera->viewprojection_matrix);
 			shader->setUniform("u_inv_projection", inv_proj_mat);
 			shader->setUniform("u_projection", camera->projection_matrix);
