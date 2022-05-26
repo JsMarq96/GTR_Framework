@@ -21,6 +21,10 @@ bool opaque_draw_call_distance_comp(const GTR::sDrawCall& d1, const GTR::sDrawCa
 	return d1.camera_distance < d2.camera_distance;
 }
 
+void Renderer::compute_visible_objects(Scene* base_scene, Camera* camera, std::vector<sDrawCall>* opaque_calls, std::vector<sDrawCall>* translucent_calls) {
+
+}
+
 
 void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 {
@@ -120,7 +124,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 
 	switch(current_pipeline) {
 	case FORWARD:
-		forwardRenderScene(scene);
+		forwardRenderScene(scene, final_illumination_fbo);
 		break;
 	case DEFERRED:
 		deferredRenderScene(scene, camera);
@@ -128,7 +132,28 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	default:
 		break;
 	}
-	
+
+	// Tonemapping pass
+
+	if (deferred_output == RESULT && current_pipeline == DEFERRED) {
+		tonemapping_fbo->bind();
+
+		glDisable(GL_DEPTH_TEST);
+		Mesh* quad = Mesh::getQuad();
+
+		Shader* shader = Shader::Get("tonemapping_pass");
+
+		shader->enable();
+		shader->setUniform("u_albedo_tex", final_illumination_fbo->color_textures[0], 0);
+		quad->render(GL_TRIANGLES);
+		shader->disable();
+
+		glEnable(GL_DEPTH_TEST);
+
+		tonemapping_fbo->unbind();
+
+		tonemapping_fbo->color_textures[0]->toViewport();
+	}
 
 	_opaque_objects.clear();
 	_translucent_objects.clear();

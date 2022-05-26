@@ -91,17 +91,19 @@ Application::Application(int window_width, int window_height, SDL_Window* window
 	srand(12670190);
 
 	float rand_max_f = (float)RAND_MAX;
-	for (uint32_t i = 0; i < 64; i++) {
-		float x = ((float) rand()) / rand_max_f, z = ((float)rand()) / rand_max_f;
+	for (uint32_t i = 0; i < AO_SAMPLE_SIZE; i++) {
+		float x = ((float)rand()) / rand_max_f, z = ((float)rand()) / rand_max_f;
 		x *= 2.0f, z *= 2.0f;
 		x -= 1.0f, z -= 1.0f;
-		float y = sqrt((1.0f - (x*x) - (z*z)));
+		//float y = sqrt((1.0f - (x * x) - (z * z)));
+		float y = ((float)rand()) / rand_max_f;
+		//std::cout << y << std::endl;
 
 		vec3 point = vec3(x, y, z);
 		float scale = (float)i / 64.0;
 		scale = lerp(0.1f, 1.0f, scale * scale);
 
-		points.push_back(point *scale * 10.0f);
+		points.push_back(point * scale * 10.0f);
 	}
 }
 
@@ -129,7 +131,7 @@ void Application::render(void)
 	//renderer->renderPrefab( model, prefab, camera );
 
 	renderer->renderScene(scene, camera);
-	/**glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	/*glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glDepthFunc(GL_LESS);
 	drawGrid();
 	

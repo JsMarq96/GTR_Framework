@@ -243,11 +243,11 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 
 	final_illumination_fbo->unbind();
 
-	tonemapping_fbo->bind();
-	tonemappingPass();
-	tonemapping_fbo->unbind();
+	//tonemapping_fbo->bind();
+	//tonemappingPass();
+	//tonemapping_fbo->unbind();
 
-	tonemapping_fbo->color_textures[0]->toViewport();
+	//tonemapping_fbo->color_textures[0]->toViewport();
 }
 
 void GTR::Renderer::tonemappingPass() {

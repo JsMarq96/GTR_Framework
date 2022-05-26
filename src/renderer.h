@@ -120,7 +120,7 @@ namespace GTR {
 		ShadowRenderer shadowmap_renderer;
 		SSAO_Component ao_component;
 
-		eRenderPipe current_pipeline = FORWARD;
+		eRenderPipe current_pipeline = DEFERRED;
 
 		// Debgging toggles for forward rendering
 		bool use_single_pass = true;
@@ -128,7 +128,7 @@ namespace GTR {
 		bool use_ssao = true;
 
 		// Debugging for Deferred rendering
-		eDeferredDebugOutput deferred_output = RESULT;
+		eDeferredDebugOutput deferred_output = AMBIENT_OCCLUSION;
 
 		bool show_shadowmap = false;
 		bool liniearize_shadowmap_vis = false;
@@ -140,13 +140,17 @@ namespace GTR {
 		//add here your functions
 		//...
 		void init();
+
+		// Scene
+		void compute_visible_objects(Scene* base_scene, Camera* camera, std::vector<sDrawCall>* opaque_calls, std::vector<sDrawCall>* translucent_calls);
+
 		void forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Scene *scene);
 		void forwardMultiRenderDrawCall(const sDrawCall& draw_call, const Scene* scene);
 		void forwardOpacyRenderDrawCall(const sDrawCall& draw_call, const Scene* scene);
 		void renderDeferredLightVolumes();
 		void tonemappingPass();
 
-		void forwardRenderScene(const Scene* scene);
+		void forwardRenderScene(const Scene* scene, FBO *resulting_fbo);
 		void deferredRenderScene(const Scene* scene, Camera *camera);
 
 		void renderDeferredPlainDrawCall(const sDrawCall& draw_call, const Scene* scene);

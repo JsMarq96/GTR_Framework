@@ -1,10 +1,10 @@
 #include "renderer.h"
 
 // Definition of the forward renderer functions
-void GTR::Renderer::forwardRenderScene(const Scene *scene) {
-	final_illumination_fbo->bind();
+void GTR::Renderer::forwardRenderScene(const Scene *scene, FBO *result_fbo) {
+	result_fbo->bind();
 
-	final_illumination_fbo->enableSingleBuffer(0);
+	result_fbo->enableSingleBuffer(0);
 	glClearColor(0.1, 0.1, 0.1, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -30,25 +30,7 @@ void GTR::Renderer::forwardRenderScene(const Scene *scene) {
 			forwardMultiRenderDrawCall(_translucent_objects[i], scene);
 		}
 	}
-	final_illumination_fbo->unbind();
-
-	tonemapping_fbo->bind();
-
-	glDisable(GL_DEPTH_TEST);
-	Mesh* quad = Mesh::getQuad();
-
-	Shader* shader = Shader::Get("tonemapping_pass");
-
-	shader->enable();
-	shader->setUniform("u_albedo_tex", final_illumination_fbo->color_textures[0], 0);
-	quad->render(GL_TRIANGLES);
-	shader->disable();
-
-	glEnable(GL_DEPTH_TEST);
-
-	tonemapping_fbo->unbind();
-
-	tonemapping_fbo->color_textures[0]->toViewport();
+	result_fbo->unbind();
 }
 
 inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Scene* scene) {

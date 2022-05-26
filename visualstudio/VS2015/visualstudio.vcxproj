@@ -166,6 +166,7 @@
     <ClCompile Include="..\..\src\forward.cpp" />
     <ClCompile Include="..\..\src\framework.cpp" />
     <ClCompile Include="..\..\src\application.cpp" />
+    <ClCompile Include="..\..\src\global_ilumination.cpp" />
     <ClCompile Include="..\..\src\gltf_loader.cpp" />
     <ClCompile Include="..\..\src\input.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
@@ -220,6 +221,7 @@
     <ClInclude Include="..\..\src\fbo.h" />
     <ClInclude Include="..\..\src\framework.h" />
     <ClInclude Include="..\..\src\application.h" />
+    <ClInclude Include="..\..\src\global_ilumination.h" />
     <ClInclude Include="..\..\src\gltf_loader.h" />
     <ClInclude Include="..\..\src\includes.h" />
     <ClInclude Include="..\..\src\input.h" />

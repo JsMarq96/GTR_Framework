@@ -129,6 +129,9 @@
     <ClCompile Include="..\..\src\shadows.cpp">
       <Filter>pipeline</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\global_ilumination.cpp">
+      <Filter>pipeline</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\extra\textparser.h">
@@ -247,6 +250,9 @@
       <Filter>pipeline</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\shadows.h">
+      <Filter>pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\global_ilumination.h">
       <Filter>pipeline</Filter>
     </ClInclude>
   </ItemGroup>
