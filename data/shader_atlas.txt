@@ -761,8 +761,8 @@ sFragData getDataOfFragment(const in vec2 uv) {
 	sFragData mat;
 
 	vec4 mrt = texture(u_met_rough_tex, uv);
-	mat.roughness = mrt.r;
-	mat.metalness = mrt.g;
+	mat.roughness = mrt.g;
+	mat.metalness = mrt.r;
 
 	mat.albedo = de_gamma(texture(u_albedo_tex, uv).rgb);
 

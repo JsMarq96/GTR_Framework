@@ -138,6 +138,8 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	if (deferred_output == RESULT && current_pipeline == DEFERRED) {
 		tonemapping_fbo->bind();
 
+		tonemapping_fbo->enableSingleBuffer(0);
+
 		glDisable(GL_DEPTH_TEST);
 		Mesh* quad = Mesh::getQuad();
 
