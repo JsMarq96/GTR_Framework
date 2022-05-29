@@ -1061,47 +1061,13 @@ in mat4 v_viewprojection_inv;
 
 layout(location = 0) out vec3 o_frag_ao;
 
-float linearize_depth(float d) {
-    //return 0.5 * (- u_projection[2].z * d + u_projection[3].z) / d + 0.5;
-	//n * (z + 1.0) / (f + n - z * (f - n))
-	float dp = 2.0 * d - 1.0;
-	return u_near_far.x * (dp + 1.0) / (u_near_far.y + u_near_far.x - dp * (u_near_far.y - u_near_far.x));
-
-	//return 2.0 * u_near_far.x * u_near_far.y / (u_near_far.y + u_near_far.x - dp * (u_near_far.y - u_near_far.x));
-}
-
-vec3 get_world_position_from_depth(float d) {
-	vec4 clip = vec4(v_uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
-	vec4 world_pos = v_viewprojection_inv * clip;
-
-	return world_pos.xyz / world_pos.w;
-}
 
 vec3 get_view_position_from_depth(vec2 uv) {
 	float d = texture(u_depth_tex, uv).r;
-	//d = linearize_depth(d);
 	vec4 clip = vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
 	vec4 world_pos = u_inv_projection * clip;
 
 	return world_pos.xyz / world_pos.w;
-}
-
-mat3 rotateCotangentFrame(vec3 N, vec3 p, vec2 uv) {
-  // get edge vectors of the pixel triangle
-	vec3 dp1 = dFdx( p );
-	vec3 dp2 = dFdy( p );
-	vec2 duv1 = dFdx( uv );
-	vec2 duv2 = dFdy( uv );
-	
-	// solve the linear system
-	vec3 dp2perp = cross( dp2, N );
-	vec3 dp1perp = cross( N, dp1 );
-	vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
-	vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
- 
-	// construct a scale-invariant frame 
-	float invmax = inversesqrt( max( dot(T,T), dot(B,B) ) );
-	return mat3( T * invmax, B * invmax, N );
 }
 
 void main() {
@@ -1114,23 +1080,18 @@ void main() {
 	}
 
 	vec3 frag_view_pos = get_view_position_from_depth(v_uv);
-	vec3 world = get_world_position_from_depth(sample_depth);
 
 	vec3 normal = texture(u_normal_occ_tex, v_uv).rgb;
 	normal = normalize(normal.rgb * 2.0 - 1.0);
 
+	// Set normal on viewspace
 	normal = (u_view * vec4(normal, 0.0)).xyz;
 
 	// Create TBN matrix
 	vec3 random_vec = (vec3(texture(u_noise_tex, v_uv * u_noise_scale).xy * 2.0 - 1.0, 0.0));
 	vec3 tangent = normalize(random_vec - normal * dot(random_vec, normal));
-
-
-    //tangent = normalize(tangent);
 	vec3 bitangent = (cross(normal, tangent));
 	mat3 rot_mat = mat3(tangent, bitangent, normal);
-
-	//rot_mat = rotateCotangentFrame(normal, world, v_uv);
 
 	float occlusion = 0.0;
 	 vec3 rebuild_sample_pos = vec3(0.0);
@@ -1144,7 +1105,7 @@ void main() {
 		vec2 sample_uv = (sample_ndc.xy / sample_ndc.w) * 0.5 + 0.5;
 
 		if (sample_uv.x > 1.0 || sample_uv.y > 1.0 || sample_uv.x < 0.0 || sample_uv.y < 0.0) {
-			//continue;
+			continue;
 		}
 
 		rebuild_sample_pos = get_view_position_from_depth(sample_uv);
@@ -1156,10 +1117,8 @@ void main() {
 	}
 	
 	o_frag_ao = vec3(1.0 - (occlusion / float(SAMPLE_SIZE)));
+	// Enhance contrast
 	o_frag_ao = o_frag_ao * o_frag_ao;
-	//o_frag_ao = (u_view * vec4(normal, 0.0)).xyz;
-	//o_frag_ao = rot_mat * vec3(0.0, 1.0, 0.0);
-	//o_frag_ao = vec3(rebuild_sample_pos.z * 20, 0.0, 0.0);
 }
 
 
