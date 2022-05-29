@@ -1138,7 +1138,7 @@ void main() {
 		vec3 sample_point = (frag_view_pos) + (normalize(rot_mat * u_random_point[i]) * u_ao_radius);
 
 		// Bias
-		//sample_point += normal * 1.5;
+		sample_point += normal * 0.5;
 
 		vec4 sample_ndc = u_projection * vec4(sample_point, 1.0);
 		vec2 sample_uv = (sample_ndc.xy / sample_ndc.w) * 0.5 + 0.5;

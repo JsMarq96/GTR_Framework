@@ -118,11 +118,12 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene, Camera *cam) {
 		renderDeferredPlainDrawCall(_opaque_objects[i], scene);
 	}
 
-	//glDepthMask(false);
+	// Avoid the translucent to write to the depth buffer
+	glDepthMask(false);
 	for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
 		forwardOpacyRenderDrawCall(_translucent_objects[i], scene);
 	}
-	//glDepthMask(true);
+	glDepthMask(true);
 
 	deferred_gbuffer->unbind();
 

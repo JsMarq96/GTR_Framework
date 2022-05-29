@@ -153,6 +153,7 @@ void Application::render(void)
 
 	shad->disable();
 
+
     glDisable(GL_DEPTH_TEST);*/
     //render anything in the gui after this
 
