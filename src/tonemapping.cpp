@@ -50,9 +50,6 @@ namespace GTR {
 		shader->disable();
 		ilumination_fbo->unbind();
 
-		// Generate mipmaps of the Luma of the current text
-		//ilumination_fbo->color_textures[0]->generateMipmaps();
-
 		// Compute the average and the maximun luminace, while storing it on the
 		// luminance swapchain
 		get_avg_max_lum_of_texture(ilumination_fbo->color_textures[0]);
@@ -61,11 +58,10 @@ namespace GTR {
 		fbo->enableSingleBuffer(0);
 
 		shader = Shader::Get(mapping_shader[current_mapper]);
-
 		shader->enable();
 		shader->setUniform("u_albedo_tex", prev_pass, 0);
 		shader->setUniform("u_max_avg_lum_tex", compute_fbo->color_textures[compute_fbo_swapchain], 1);
-		//shader->setUniform("u_max_avg_lum_prev_tex", compute_fbo->color_textures[!compute_fbo_swapchain], 2);
+		shader->setUniform("u_max_avg_lum_prev_tex", compute_fbo->color_textures[!compute_fbo_swapchain], 2);
 		quad->render(GL_TRIANGLES);
 
 		shader->disable();
@@ -98,13 +94,11 @@ namespace GTR {
 		 shader->setUniform("u_text_size", vec2(text->width, text->height));
 		 shader->setUniform("u_lowest_mip_level", numLevels);
 
-		 std::cout << numLevels << std::endl;
 		 quad->render(GL_TRIANGLES);
 		 shader->disable();
 
 		 compute_fbo->unbind();
 
-		 //std::cout << (float)compute_fbo_swapchain << std::endl;
 
 		 return compute_fbo->color_textures[compute_fbo_swapchain];
 	 }

@@ -1060,8 +1060,8 @@ void main() {
 	//color /= v_prev_avg_lum;
 	float old_luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
 
-	//float scalled_luma = (10.0 / v_prev_avg_lum) * old_luma;
-	float scalled_luma = old_luma;
+	float scalled_luma = (0.05 / v_prev_avg_lum) * old_luma;
+	//float scalled_luma = old_luma;
 
 	// COmpute the new luminance
     float new_luma = (scalled_luma * (1.0 + scalled_luma / ((v_max_lum * v_max_lum) + 0.001))) / (1.0 + scalled_luma);
@@ -1118,11 +1118,11 @@ void main()
 	// texture is sized 1,1 should not matter the uvs
 	vec4  max_avg_lum = texture(u_max_avg_lum_tex, vec2(0.0, 0.0)).rgba;
 	v_max_lum = max_avg_lum.r;
-	//v_avg_lum = max_avg_lum.g;
+	v_avg_lum = max_avg_lum.g;
 
-	//vec4 max_avg_lum_prev = texture(u_max_avg_lum_prev_tex, vec2(0.5, 0.5)).rgba;
-	//v_prev_max_lum = max_avg_lum_prev.r;
-	//v_prev_avg_lum = max_avg_lum_prev.g;
+	vec4 max_avg_lum_prev = texture(u_max_avg_lum_prev_tex, vec2(0.5, 0.5)).rgba;
+	v_prev_max_lum = max_avg_lum_prev.r;
+	v_prev_avg_lum = max_avg_lum_prev.g;
 
 	gl_Position = vec4( a_vertex, 1.0 );
 }
