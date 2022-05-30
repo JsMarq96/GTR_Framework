@@ -16,12 +16,16 @@ namespace GTR {
 	struct Tonemapping_Component {
 
 		FBO* fbo = NULL;
+		FBO* compute_fbo = NULL;
+		FBO* ilumination_fbo = NULL;
 
-		eTonemappers current_mapper = UNCHARTED_MAPPER;
+		bool compute_fbo_swapchain;
 
+		eTonemappers current_mapper = PERCEPTION_MAPPER;
 
 		void init();
 		Texture* pass(Texture* prev_pass);
+		Texture* get_avg_max_lum_of_texture(Texture* text);
 	};
 	
 };

@@ -19,7 +19,11 @@ deferred_world_pos quad.vs deferred_world_pos.fs
 // Render Passes & Effects
 ao_pass quad.vs ao_pass.fs
 uncharted_tonemapper quad.vs uncharted_tonemapping_pass.fs
+perception_tonemapper quad_max_lum.vs perception_tonemapping_pass.fs
+// Tools
+compute_lum quad.vs compute_lum.fs
 blur quad.vs blur.fs
+compute_max_and_avg_lum quad.vs compute_max_and_avg_lum.fs
 
 \depth_functions
 
@@ -144,8 +148,6 @@ void main()
 	v_viewprojection_inv = inverse(u_viewprojection);
 	gl_Position = vec4( a_vertex, 1.0 );
 }
-
-
 \flat.fs
 
 #version 330 core
@@ -1039,6 +1041,9 @@ void main() {
 #version 330 core
 
 in vec2 v_uv;
+in float v_max_lum;
+in float v_avg_lum;
+in float v_prev_avg_lum;
 
 uniform sampler2D u_albedo_tex;
 
@@ -1046,26 +1051,122 @@ layout(location = 0) out vec4 o_color;
 
 #include "hdr_tonemapping"
 
-// Source http://filmicworlds.com/blog/filmic-tonemapping-operators/
-const float A = 0.15;
-const float B = 0.50;
-const float C = 0.10;
-const float D = 0.20;
-const float E = 0.02;
-const float F = 0.30;
-const float W = 11.2;
+void main() {
+	vec3 color = texture(u_albedo_tex, v_uv).rgb;
 
-vec3 Uncharted2TonemapPartial(vec3 x) {
-   return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
+	// Extender Reinhart Lumainance
+	// Source: https://64.github.io/tonemapping/
+	// Get pixel puma
+	//color /= v_prev_avg_lum;
+	float old_luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+
+	//float scalled_luma = (10.0 / v_prev_avg_lum) * old_luma;
+	float scalled_luma = old_luma;
+
+	// COmpute the new luminance
+    float new_luma = (scalled_luma * (1.0 + scalled_luma / ((v_max_lum * v_max_lum) + 0.001))) / (1.0 + scalled_luma);
+
+	//new_luma /= v_prev_avg_lum;
+
+	// Add the new luminance
+	color = (color /old_luma) * new_luma;
+
+	// Set a minimun luminance
+	//color = max(color,vec3(0.001));
+	o_color = vec4(gamma(color), 1.0);
 }
 
+\compute_lum.fs
+
+#version 330 core
+
+in vec2 v_uv;
+
+uniform sampler2D u_albedo_tex;
+
+layout(location = 0) out vec4 o_lum;
+
 void main() {
-	vec3 tonemapped_color = Uncharted2TonemapPartial(texture(u_albedo_tex, v_uv).rgb * 2.0);
+	vec3 rgb = texture(u_albedo_tex, v_uv).rgb; 
+	float lum = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+ 	o_lum = vec4(lum, lum, lum, 1.0);
+}
 
-	vec3 W = vec3(11.2f);
-    vec3 white_scale = vec3(1.0f) / Uncharted2TonemapPartial(W);
+\quad_max_lum.vs
 
-	o_color = vec4(gamma(tonemapped_color * white_scale, 1.0);
+#version 330 core
+
+in vec3 a_vertex;
+in vec2 a_coord;
+
+uniform mat4 u_viewprojection;
+uniform sampler2D u_max_avg_lum_tex;
+uniform sampler2D u_max_avg_lum_prev_tex;
+
+out vec2 v_uv;
+out mat4 v_viewprojection_inv;
+out float v_max_lum;
+out float v_avg_lum;
+out float v_prev_max_lum;
+out float v_prev_avg_lum;
+
+void main()
+{	
+	v_uv = a_coord;
+	v_viewprojection_inv = inverse(u_viewprojection);
+
+	// texture is sized 1,1 should not matter the uvs
+	vec4  max_avg_lum = texture(u_max_avg_lum_tex, vec2(0.0, 0.0)).rgba;
+	v_max_lum = max_avg_lum.r;
+	//v_avg_lum = max_avg_lum.g;
+
+	//vec4 max_avg_lum_prev = texture(u_max_avg_lum_prev_tex, vec2(0.5, 0.5)).rgba;
+	//v_prev_max_lum = max_avg_lum_prev.r;
+	//v_prev_avg_lum = max_avg_lum_prev.g;
+
+	gl_Position = vec4( a_vertex, 1.0 );
+}
+
+\compute_max_and_avg_lum.fs
+
+#version 330 core
+
+in vec2 v_uv;
+
+uniform sampler2D u_tex;
+uniform vec2 u_text_size;
+uniform float u_write_to_swap;
+uniform int u_lowest_mip_level;
+
+layout(location = 0) out vec4 o_avg_max_swap1;
+layout(location = 1) out vec4 o_avg_max_swap2;
+
+#include "hdr_tonemapping"
+
+void main() {
+	float max_pixel = -10.0;
+	float avg_pixel = 0.0;
+	
+	// Get the lowest posible mip of size (1,1) for the avg luma
+ 	avg_pixel = textureLod(u_tex, vec2(0.0, 0.0), u_lowest_mip_level).r; 
+
+	// Get medium mip comuting the maximum
+	int mip_level = int(u_lowest_mip_level / 2);	
+	vec2 mip_size = textureSize(u_tex, mip_level);
+	for(int x = 0; x < mip_size.x ; x++) {
+		for(int y = 0; y < mip_size.y ; y++) {
+			vec2 uv = vec2(x,y) / mip_size;
+			// No need to convert since the source is in luma
+			float r = textureLod(u_tex, uv, mip_level).r;
+			max_pixel = max(r, max_pixel);
+		}
+	}
+
+	if (u_write_to_swap == 0) {
+		o_avg_max_swap1 = vec4(max_pixel, avg_pixel, 0.0, 1.0);
+	} else {
+		o_avg_max_swap1 = vec4(max_pixel, avg_pixel, 0.0, 1.0);
+	}
 }
 
 \ao_pass.fs
