@@ -132,6 +132,9 @@
     <ClCompile Include="..\..\src\global_ilumination.cpp">
       <Filter>pipeline</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\tonemapping.cpp">
+      <Filter>pipeline</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\extra\textparser.h">
@@ -253,6 +256,9 @@
       <Filter>pipeline</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\global_ilumination.h">
+      <Filter>pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\tonemapping.h">
       <Filter>pipeline</Filter>
     </ClInclude>
   </ItemGroup>

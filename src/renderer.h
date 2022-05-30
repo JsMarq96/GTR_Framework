@@ -4,6 +4,7 @@
 #include "application.h"
 #include "shadows.h"
 #include "ambient_occlusion.h"
+#include "tonemapping.h"
 #include <algorithm>
 
 //forward declarations
@@ -110,30 +111,32 @@ namespace GTR {
 
 		FBO* deferred_gbuffer = NULL;
 		FBO* final_illumination_fbo = NULL;
-		FBO* tonemapping_fbo = NULL;
 
+		Camera* camera;
+
+		// TEMP SCENE DATA ======
 		std::vector<sDrawCall> _opaque_objects;
 		std::vector<sDrawCall> _translucent_objects;
 		std::vector<LightEntity*> _scene_non_directonal_lights;
 		std::vector<LightEntity*> _scene_directional_lights;
 
+		// CONPONENTS =====
 		ShadowRenderer shadowmap_renderer;
 		SSAO_Component ao_component;
+		Tonemapping_Component tonemapping_component;
 
+		// CONFIG FLAGS =====
 		eRenderPipe current_pipeline = DEFERRED;
 
-		// Debgging toggles for forward rendering
 		bool use_single_pass = true;
 		bool render_light_volumes = false;
 		bool use_ssao = true;
 
-		// Debugging for Deferred rendering
+		// DEBUG FLAGS ====
 		eDeferredDebugOutput deferred_output = RESULT;
 
 		bool show_shadowmap = false;
 		bool liniearize_shadowmap_vis = false;
-
-		Camera* camera;
 
 	public:
 

@@ -133,29 +133,13 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 		break;
 	}
 
+	Texture* end_result = final_illumination_fbo->color_textures[0];
 	// Tonemapping pass
-
 	if (deferred_output == RESULT && current_pipeline == DEFERRED) {
-		tonemapping_fbo->bind();
-
-		tonemapping_fbo->enableSingleBuffer(0);
-
-		glDisable(GL_DEPTH_TEST);
-		Mesh* quad = Mesh::getQuad();
-
-		Shader* shader = Shader::Get("tonemapping_pass");
-
-		shader->enable();
-		shader->setUniform("u_albedo_tex", final_illumination_fbo->color_textures[0], 0);
-		quad->render(GL_TRIANGLES);
-		shader->disable();
-
-		glEnable(GL_DEPTH_TEST);
-
-		tonemapping_fbo->unbind();
-
-		tonemapping_fbo->color_textures[0]->toViewport();
+		end_result = tonemapping_component.pass(end_result);
 	}
+
+	end_result->toViewport();
 
 	_opaque_objects.clear();
 	_translucent_objects.clear();
@@ -316,17 +300,11 @@ void Renderer::renderMeshWithMaterial(const Matrix44 model, Mesh* mesh, GTR::Mat
 void Renderer::init() {
 	shadowmap_renderer.init();
 	ao_component.init();
+	tonemapping_component.init();
 
 	final_illumination_fbo = new FBO();
-	tonemapping_fbo = new FBO();
 
 	final_illumination_fbo->create(Application::instance->window_width, Application::instance->window_height,
-		1,
-		GL_RGBA,
-		GL_FLOAT,
-		true);
-
-	tonemapping_fbo->create(Application::instance->window_width, Application::instance->window_height,
 		1,
 		GL_RGBA,
 		GL_FLOAT,
