@@ -135,9 +135,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 
 	Texture* end_result = final_illumination_fbo->color_textures[0];
 	// Tonemapping pass
-	if (deferred_output == RESULT) {
-		end_result = tonemapping_component.pass(end_result);
-	}
+	end_result = tonemapping_component.pass(end_result);
 
 	end_result->toViewport();
 

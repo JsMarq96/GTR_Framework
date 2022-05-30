@@ -34,7 +34,7 @@ inline void GTR::Renderer::forwardOpacyRenderDrawCall(const sDrawCall& draw_call
 	assert(glGetError() == GL_NO_ERROR);
 
 	//chose a shader
-	shader = Shader::Get("deferred_plane_traslucent");
+	shader = Shader::Get("forward_singlepass_pbr");
 
 	assert(glGetError() == GL_NO_ERROR);
 
@@ -117,13 +117,6 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene, Camera *cam) {
 	for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
 		renderDeferredPlainDrawCall(_opaque_objects[i], scene);
 	}
-
-	// Avoid the translucent to write to the depth buffer
-	glDepthMask(false);
-	for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
-		forwardOpacyRenderDrawCall(_translucent_objects[i], scene);
-	}
-	glDepthMask(true);
 
 	deferred_gbuffer->unbind();
 
@@ -241,6 +234,13 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 	deferred_gbuffer->depth_texture->copyTo(NULL);
 
 	renderDeferredLightVolumes();
+
+	// Avoid the translucent to write to the depth buffer
+	//glDepthMask(false);
+	for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
+		forwardOpacyRenderDrawCall(_translucent_objects[i], scene);
+	}
+	//glDepthMask(true);
 
 	final_illumination_fbo->unbind();
 

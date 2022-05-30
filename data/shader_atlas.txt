@@ -816,8 +816,8 @@ sFragData getDataOfFragment(const in vec2 uv) {
 	sFragData mat;
 
 	vec4 mrt = texture(u_met_rough_tex, uv);
-	mat.roughness = mrt.r;
-	mat.metalness = mrt.g;
+	mat.roughness = mrt.g;
+	mat.metalness = mrt.r;
 
 	mat.albedo = de_gamma(u_color.rgb * texture(u_texture, uv).rgb);
 
@@ -1060,8 +1060,8 @@ void main() {
 	//color /= v_prev_avg_lum;
 	float old_luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
 
-	float scalled_luma = (0.05 / v_prev_avg_lum) * old_luma;
-	//float scalled_luma = old_luma;
+	//float scalled_luma = (0.0005 / v_prev_avg_lum) * old_luma; // 0.005??
+	float scalled_luma = old_luma;
 
 	// COmpute the new luminance
     float new_luma = (scalled_luma * (1.0 + scalled_luma / ((v_max_lum * v_max_lum) + 0.001))) / (1.0 + scalled_luma);
@@ -1437,5 +1437,5 @@ void main()
 		final_color += light_component * get_pbr_color(frag_data, light_vects);
 	}
 
-	FragColor = vec4(final_color, 1.0);
+	FragColor = vec4(final_color, color.a);
 }
