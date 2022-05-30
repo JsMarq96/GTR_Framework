@@ -71,6 +71,7 @@ namespace GTR {
 		compute_fbo_swapchain = !compute_fbo_swapchain;
 
 		glEnable(GL_DEPTH_TEST);
+		first_frame = true;
 
 		return fbo->color_textures[0];
 	}
@@ -93,6 +94,7 @@ namespace GTR {
 		 shader->setUniform("u_tex", text, 0);
 		 shader->setUniform("u_text_size", vec2(text->width, text->height));
 		 shader->setUniform("u_lowest_mip_level", numLevels);
+		 shader->setUniform("u_is_first_frame", (int)first_frame);
 
 		 quad->render(GL_TRIANGLES);
 		 shader->disable();

@@ -1137,6 +1137,7 @@ uniform sampler2D u_tex;
 uniform vec2 u_text_size;
 uniform float u_write_to_swap;
 uniform int u_lowest_mip_level;
+uniform int u_is_first_frame;
 
 layout(location = 0) out vec4 o_avg_max_swap1;
 layout(location = 1) out vec4 o_avg_max_swap2;
@@ -1148,7 +1149,7 @@ void main() {
 	float avg_pixel = 0.0;
 	
 	// Get the lowest posible mip of size (1,1) for the avg luma
- 	avg_pixel = textureLod(u_tex, vec2(0.0, 0.0), u_lowest_mip_level).r; 
+ 	avg_pixel = textureLod(u_tex, vec2(0.5, 0.5), u_lowest_mip_level).r; 
 
 	// Get medium mip comuting the maximum
 	int mip_level = int(u_lowest_mip_level / 2);	
@@ -1162,11 +1163,19 @@ void main() {
 		}
 	}
 
-	if (u_write_to_swap == 0) {
-		o_avg_max_swap1 = vec4(max_pixel, avg_pixel, 0.0, 1.0);
+	max_pixel = max(0.0, max_pixel);
+
+	if (u_is_first_frame == 1) {
+		if (u_write_to_swap == 0) {
+			o_avg_max_swap1 = vec4(max_pixel, avg_pixel, 0.0, 1.0);
+		} else {
+			o_avg_max_swap1 = vec4(max_pixel, avg_pixel, 0.0, 1.0);
+		}
 	} else {
 		o_avg_max_swap1 = vec4(max_pixel, avg_pixel, 0.0, 1.0);
+		o_avg_max_swap1 = vec4(max_pixel, avg_pixel, 0.0, 1.0);
 	}
+	
 }
 
 \ao_pass.fs

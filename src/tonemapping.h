@@ -21,6 +21,8 @@ namespace GTR {
 
 		bool compute_fbo_swapchain;
 
+		bool first_frame = false;
+
 		eTonemappers current_mapper = PERCEPTION_MAPPER;
 
 		void init();
