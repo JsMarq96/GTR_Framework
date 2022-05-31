@@ -79,7 +79,7 @@ namespace GTR {
 	class Prefab;
 	class Material;
 
-	enum eRenderPipe : uint8_t {
+	enum eRenderPipe : int {
 		FORWARD = 0,
 		DEFERRED
 	};
@@ -88,7 +88,7 @@ namespace GTR {
 	// Separating the render from anything else makes the code cleaner
 	class Renderer
 	{
-		enum eDeferredDebugOutput {
+		enum eDeferredDebugOutput : int {
 			RESULT = 0,
 			COLOR,
 			NORMAL,
@@ -238,10 +238,12 @@ namespace GTR {
 #ifndef SKIP_IMGUI
 			shadowmap_renderer.renderInMenu();
 			ImGui::Checkbox("Show shadowmap", &show_shadowmap);
-			ImGui::Checkbox("Linearize shadomap visualization", &liniearize_shadowmap_vis);
+			if (show_shadowmap) {
+				ImGui::Checkbox("Linearize shadomap visualization", &liniearize_shadowmap_vis);
+			}
 
 			const char* rend_pipe[2] = { "FORWARD", "DEFERRED"};
-			const char* deferred_output_labels[DEFERRED_DEBUG_SIZE] = {"Final Result", "Color", "Normal", "Materials", "Emmisive", "Depth", "World pos.", "Ambient occlusion", "Ambient occlusion blurred"};
+			const char* deferred_output_labels[DEFERRED_DEBUG_SIZE] = {"Final Result", "Color", "Normal", "Materials","Depth", "World pos.", "Emmisive", "Ambient occlusion", "Ambient occlusion blurred"};
 			ImGui::Combo("Rendering pipeline", (int*) &current_pipeline, rend_pipe, IM_ARRAYSIZE(rend_pipe));
 
 			switch (current_pipeline) {
@@ -259,7 +261,7 @@ namespace GTR {
 			default:
 				break;
 			}
-			
+			tonemapping_component.imgui_config();
 #endif
 		}
 	};

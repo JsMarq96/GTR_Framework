@@ -31,7 +31,7 @@
 			"name":"car2",
 			"type":"PREFAB",
 			"filename":"prefabs/gmc/scene.gltf",
-			"position":[-132.39, -3.36,131.027],
+			"position":[-132.39, -10.36,131.027],
 			"angle":-90
 		},
 		{
@@ -72,7 +72,7 @@
 			"name":"trash",
 			"type":"PREFAB",
 			"filename":"prefabs/trash_can/scene.gltf",
-			"position":[140,0,110],
+			"position":[145.46, 0, 121.575],
 			"scale":[0.5,0.5,0.5]
 		},
 		{
@@ -137,7 +137,7 @@
 			"position":[150,600,50],
 			"target":[-80,0,-50],
 			"color":[0.1,0.2,0.4],
-			"intensity":1.5,
+			"intensity":8.5,
 			"area_size":1500,
 			"max_dist":1000,
 			"cast_shadows": true,

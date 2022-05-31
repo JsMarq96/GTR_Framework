@@ -8,9 +8,10 @@
 
 namespace GTR {
 
-	enum eTonemappers : uint16_t {
+	enum eTonemappers : int {
 		PERCEPTION_MAPPER = 0,
-		UNCHARTED_MAPPER
+		UNCHARTED_MAPPER,
+		NO_MAPPER
 	};
 
 	struct Tonemapping_Component {
@@ -28,6 +29,8 @@ namespace GTR {
 		void init();
 		Texture* pass(Texture* prev_pass);
 		Texture* get_avg_max_lum_of_texture(Texture* text);
+
+		void imgui_config();
 	};
 	
 };

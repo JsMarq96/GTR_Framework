@@ -37,6 +37,9 @@ namespace GTR {
 	}
 
 	 Texture* Tonemapping_Component::pass(Texture* prev_pass) {
+		 if (current_mapper == NO_MAPPER)
+			 return prev_pass;
+
 		glDisable(GL_DEPTH_TEST);
 		
 		// First, compute the luma of the scene
@@ -103,5 +106,12 @@ namespace GTR {
 
 
 		 return compute_fbo->color_textures[compute_fbo_swapchain];
+	 }
+
+
+	 void Tonemapping_Component::imgui_config() {
+		 const char* tonemapping_labels[3] = { "PERCEPTUAL", "UNCHARTED", "NONE" };
+
+		 ImGui::Combo("Tonemapping Mode", (int*)&current_mapper, tonemapping_labels, IM_ARRAYSIZE(tonemapping_labels));
 	 }
 };
