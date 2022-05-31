@@ -1087,7 +1087,7 @@ layout(location = 0) out vec4 o_lum;
 void main() {
 	vec3 rgb = texture(u_albedo_tex, v_uv).rgb; 
 	float lum = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
-	lum = 2.0 * lum;
+	//lum = 2.0 * lum;
  	o_lum = vec4(lum, lum, lum, 1.0);
 }
 
