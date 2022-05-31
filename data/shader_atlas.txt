@@ -1063,13 +1063,13 @@ void main() {
 	//float scalled_luma = (0.0005 / v_prev_avg_lum) * old_luma; // 0.005??
 	float scalled_luma = old_luma;
 
-	// COmpute the new luminance
-    float new_luma = (scalled_luma * (1.0 + scalled_luma / ((v_max_lum * v_max_lum) + 0.001))) / (1.0 + scalled_luma);
+	// Compute the new luminance (added a tiy bias por maximun luminosity of 0.0)
+    	float new_luma = (scalled_luma * (1.0 + scalled_luma / ((v_max_lum * v_max_lum) + 0.001))) / (1.0 + scalled_luma);
 
 	//new_luma /= v_prev_avg_lum;
 
-	// Add the new luminance
-	color = (color /old_luma) * new_luma;
+	// Add change the luminance, by scalling
+	color = color * (new_luma / old_luma);
 
 	// Set a minimun luminance
 	//color = max(color,vec3(0.001));
