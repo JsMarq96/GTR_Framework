@@ -126,7 +126,7 @@ namespace GTR {
 		Tonemapping_Component tonemapping_component;
 
 		// CONFIG FLAGS =====
-		eRenderPipe current_pipeline = DEFERRED;
+		eRenderPipe current_pipeline = FORWARD;
 
 		bool use_single_pass = true;
 		bool render_light_volumes = false;
@@ -145,15 +145,15 @@ namespace GTR {
 		void init();
 
 		// Scene
-		void compute_visible_objects(Scene* base_scene, Camera* camera, std::vector<sDrawCall>* opaque_calls, std::vector<sDrawCall>* translucent_calls);
+		//void compute_visible_objects(std::vector<PrefabEntity*> prefabs, Camera* camera, std::vector<sDrawCall>* opaque_calls, std::vector<sDrawCall>* translucent_calls);
 
-		void forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Scene *scene);
-		void forwardMultiRenderDrawCall(const sDrawCall& draw_call, const Scene* scene);
+		void forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Camera* cam, const Scene *scene);
+		void forwardMultiRenderDrawCall(const sDrawCall& draw_call, const Camera* cam, const Scene* scene);
 		void forwardOpacyRenderDrawCall(const sDrawCall& draw_call, const Scene* scene);
 		void renderDeferredLightVolumes();
 		void tonemappingPass();
 
-		void forwardRenderScene(const Scene* scene, FBO *resulting_fbo);
+		void forwardRenderScene(const Scene* scene, Camera* camera, FBO *resulting_fbo);
 		void deferredRenderScene(const Scene* scene, Camera *camera);
 
 		void renderDeferredPlainDrawCall(const sDrawCall& draw_call, const Scene* scene);

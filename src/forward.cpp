@@ -1,39 +1,39 @@
 #include "renderer.h"
 
 // Definition of the forward renderer functions
-void GTR::Renderer::forwardRenderScene(const Scene *scene, FBO *result_fbo) {
+void GTR::Renderer::forwardRenderScene(const Scene* scene, Camera* camera, FBO* result_fbo) {
 	result_fbo->bind();
 
 	result_fbo->enableSingleBuffer(0);
-	glClearColor(0.1, 0.1, 0.1, 1.0);
+	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	if (use_single_pass) {
 		// First, render the opaque object
 		for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
-			forwardSingleRenderDrawCall(_opaque_objects[i], scene);
+			forwardSingleRenderDrawCall(_opaque_objects[i], camera, scene);
 		}
 
 		// then, render the translucnet, and masked objects
 		for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
-			forwardSingleRenderDrawCall(_translucent_objects[i], scene);
+			forwardSingleRenderDrawCall(_translucent_objects[i], camera, scene);
 		}
 	}
 	else {
 		// First, render the opaque object
 		for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
-			forwardMultiRenderDrawCall(_opaque_objects[i], scene);
+			forwardMultiRenderDrawCall(_opaque_objects[i], camera, scene);
 		}
 
 		// then, render the translucnet, and masked objects
 		for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
-			forwardMultiRenderDrawCall(_translucent_objects[i], scene);
+			forwardMultiRenderDrawCall(_translucent_objects[i], camera, scene);
 		}
 	}
 	result_fbo->unbind();
 }
 
-inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Scene* scene) {
+inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Camera *cam, const Scene* scene) {
 	//in case there is nothing to do
 	if (!draw_call.mesh || !draw_call.mesh->getNumVertices() || !draw_call.material)
 		return;
@@ -85,8 +85,8 @@ inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_cal
 	shader->setUniform1Array("u_light_cone_decay", (float*)draw_call.light_cone_decay, draw_call.light_count);
 
 	//upload uniforms
-	shader->setUniform("u_viewprojection", draw_call.camera->viewprojection_matrix);
-	shader->setUniform("u_camera_position", draw_call.camera->eye);
+	shader->setUniform("u_viewprojection", cam->viewprojection_matrix);
+	shader->setUniform("u_camera_position", cam->eye);
 	shader->setUniform("u_model", draw_call.model);
 	float t = getTime();
 	shader->setUniform("u_time", t);
@@ -94,7 +94,7 @@ inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_cal
 	// Material properties
 	shader->setUniform("u_color", draw_call.material->color);
 	int enabled_texteres = bind_textures(draw_call.material, shader);
-	shader->setUniform("u_ambient_occlusion_tex", Texture::getWhiteTexture(), 5);
+	//shader->setUniform("u_ambient_occlusion_tex", Texture::getWhiteTexture(), 5);
 
 	shader->setUniform("u_enabled_texteres", enabled_texteres);
 
@@ -115,7 +115,7 @@ inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_cal
 }
 
 
-inline void GTR::Renderer::forwardMultiRenderDrawCall(const sDrawCall& draw_call, const Scene* scene) {
+inline void GTR::Renderer::forwardMultiRenderDrawCall(const sDrawCall& draw_call, const Camera* cam, const Scene* scene) {
 	//in case there is nothing to do
 	if (!draw_call.mesh || !draw_call.mesh->getNumVertices() || !draw_call.material)
 		return;
@@ -147,8 +147,8 @@ inline void GTR::Renderer::forwardMultiRenderDrawCall(const sDrawCall& draw_call
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	//upload uniforms
-	shader->setUniform("u_viewprojection", draw_call.camera->viewprojection_matrix);
-	shader->setUniform("u_camera_position", draw_call.camera->eye);
+	shader->setUniform("u_viewprojection", cam->viewprojection_matrix);
+	shader->setUniform("u_camera_position", cam->eye);
 	shader->setUniform("u_model", draw_call.model);
 	float t = getTime();
 	shader->setUniform("u_time", t);

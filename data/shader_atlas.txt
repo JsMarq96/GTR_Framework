@@ -1410,7 +1410,7 @@ void main()
 
 		float shadow_compoment = 1.0;
 
-		if (u_light_type[i] != 1) { // Calculate if its in shadow if its not a point-light
+		if (u_light_type[i] != 0) { // Calculate if its in shadow if its not a point-light
 			shadow_compoment = get_shadow_component(i, frag_data.world_pos);
 		}
 
@@ -1421,17 +1421,21 @@ void main()
 		sFragVects light_vects = getVectsOfFragment(frag_data, u_light_pos[i], u_light_direction[i], u_light_max_dist[i], u_light_type[i]);
 
 		// Quadratic light attenuation
-		float light_attenuation = u_light_max_dist[i] - length(u_light_pos[i] - v_world_position);
-		light_attenuation = max(light_attenuation / u_light_max_dist[i], 0.0); 
-		light_attenuation *= light_attenuation;
+		float light_attenuation = 1.0;
+
+		if (u_light_type[i] != 1) {
+			light_attenuation = u_light_max_dist[i] - length(u_light_pos[i] - v_world_position);
+			light_attenuation = max(light_attenuation / u_light_max_dist[i], 0.0); 
+			light_attenuation *= light_attenuation;
+		}
 
 		if (u_light_type[i] == 2) { // Spot light
 			if (light_vects.l_dot_d >= u_light_cone_angle[i]) {
 				// If the fragment to light direction is inside the angle of the spotlight
-				light_component += (pow(light_vects.l_dot_d, u_light_cone_decay[i]) * light_vects.n_dot_l * de_gamma(u_light_color[i])) * u_light_intensities[i];
+				light_component += (pow(light_vects.l_dot_d, u_light_cone_decay[i]) * light_vects.n_dot_l * de_gamma(u_light_color[i])) * u_light_intensities[i] * light_attenuation;
 			}
 		} else { // For point light
-			light_component += (light_vects.n_dot_l * de_gamma(u_light_color[i])) * u_light_intensities[i];
+			light_component += (light_vects.n_dot_l * de_gamma(u_light_color[i])) * u_light_intensities[i] * light_attenuation;
 		}
 		final_color += light_component * get_pbr_color(frag_data, light_vects);
 	}

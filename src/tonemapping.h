@@ -24,7 +24,7 @@ namespace GTR {
 
 		bool first_frame = false;
 
-		eTonemappers current_mapper = PERCEPTION_MAPPER;
+		eTonemappers current_mapper = UNCHARTED_MAPPER;
 
 		void init();
 		Texture* pass(Texture* prev_pass);

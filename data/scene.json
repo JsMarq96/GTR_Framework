@@ -143,5 +143,6 @@
 			"cast_shadows": true,
 			"light_type":"DIRECTIONAL"
 		}
+
 	]
 }
