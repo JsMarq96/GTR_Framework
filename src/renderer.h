@@ -119,6 +119,7 @@ namespace GTR {
 		std::vector<sDrawCall> _translucent_objects;
 		std::vector<LightEntity*> _scene_non_directonal_lights;
 		std::vector<LightEntity*> _scene_directional_lights;
+		std::vector<PrefabEntity*> scene_prefabs;
 
 		// CONPONENTS =====
 		ShadowRenderer shadowmap_renderer;
@@ -145,9 +146,9 @@ namespace GTR {
 		void init();
 
 		// Scene
-		//void compute_visible_objects(std::vector<PrefabEntity*> prefabs, Camera* camera, std::vector<sDrawCall>* opaque_calls, std::vector<sDrawCall>* translucent_calls);
+		void compute_visible_objects(Camera* camera, std::vector<sDrawCall>* opaque_calls, std::vector<sDrawCall>* translucent_calls);
 
-		void forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Camera* cam, const Scene *scene);
+		void forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Camera* cam, const vec3 ambient_ligh);
 		void forwardMultiRenderDrawCall(const sDrawCall& draw_call, const Camera* cam, const Scene* scene);
 		void forwardOpacyRenderDrawCall(const sDrawCall& draw_call, const Scene* scene);
 		void renderDeferredLightVolumes();

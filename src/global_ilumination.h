@@ -12,7 +12,7 @@ namespace GTR {
 	class Renderer;
 
 	struct sGI_Component {
-
+		Renderer* renderer_instance;
 		FBO* irradiance_fbo;
 		
 		bool  used_probe[MAX_PROBE_COUNT];
@@ -23,5 +23,7 @@ namespace GTR {
 		void init();
 
 		void render_to_probe(const uint32_t probe_id);
+
+		void debug_render_probe(const uint32_t probe_id);
 	};
 };

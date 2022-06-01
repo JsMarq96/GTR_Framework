@@ -11,12 +11,12 @@ void GTR::Renderer::forwardRenderScene(const Scene* scene, Camera* camera, FBO* 
 	if (use_single_pass) {
 		// First, render the opaque object
 		for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
-			forwardSingleRenderDrawCall(_opaque_objects[i], camera, scene);
+			forwardSingleRenderDrawCall(_opaque_objects[i], camera, scene->ambient_light);
 		}
 
 		// then, render the translucnet, and masked objects
 		for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
-			forwardSingleRenderDrawCall(_translucent_objects[i], camera, scene);
+			forwardSingleRenderDrawCall(_translucent_objects[i], camera, scene->ambient_light);
 		}
 	}
 	else {
@@ -33,7 +33,7 @@ void GTR::Renderer::forwardRenderScene(const Scene* scene, Camera* camera, FBO* 
 	result_fbo->unbind();
 }
 
-inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Camera *cam, const Scene* scene) {
+inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Camera *cam, const vec3 ambient_ligh) {
 	//in case there is nothing to do
 	if (!draw_call.mesh || !draw_call.mesh->getNumVertices() || !draw_call.material)
 		return;
@@ -70,7 +70,7 @@ inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_cal
 
 	// Upload light data
 	// Common data of the lights
-	shader->setUniform("u_ambient_light", scene->ambient_light);
+	shader->setUniform("u_ambient_light", ambient_light);
 	shader->setUniform3Array("u_light_pos", (float*)draw_call.light_positions, draw_call.light_count);
 	shader->setUniform3Array("u_light_color", (float*)draw_call.light_color, draw_call.light_count);
 	shader->setUniform1Array("u_light_type", (int*)draw_call.light_type, draw_call.light_count);

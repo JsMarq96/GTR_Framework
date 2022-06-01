@@ -21,11 +21,7 @@ bool opaque_draw_call_distance_comp(const GTR::sDrawCall& d1, const GTR::sDrawCa
 	return d1.camera_distance < d2.camera_distance;
 }
 
-// add_to_render_queue(pent->model, &(pent->prefab->root), camera, pent->pbr_structure);
-// add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node, Camera* camera, ePBR_Type pbr)
-// add_to_render_queue(const Matrix44&, GTR::Node*, Camera*, ePBR_Type)
-/*
-void Renderer::compute_visible_objects(std::vector<PrefabEntity*> prefabs, Camera* camera, std::vector<sDrawCall>* opaque_calls, std::vector<sDrawCall>* translucent_calls) {
+void Renderer::compute_visible_objects( Camera* camera, std::vector<sDrawCall>* opaque_calls, std::vector<sDrawCall>* translucent_calls) {
 	// Dirty curring..?
 	std::function<void(const Matrix44&, GTR::Node*, Camera*, ePBR_Type)> add_to_visibility_list;
 	add_to_visibility_list = [translucent_calls, opaque_calls, &add_to_visibility_list](const Matrix44& prefab_model, GTR::Node* node, Camera* camera, ePBR_Type pbr) {
@@ -50,24 +46,6 @@ void Renderer::compute_visible_objects(std::vector<PrefabEntity*> prefabs, Camer
 				else {
 					opaque_calls->push_back(sDrawCall{ node_model,  node->mesh,  node->material, camera, camera_distance, pbr, world_bounding });
 				}
-
-				/**
-				// Test if the objects is on the light's frustum
-				for (uint16_t light_i = 0; light_i < _scene_non_directonal_lights.size(); light_i++) {
-					LightEntity* curr_light = _scene_non_directonal_lights[light_i];
-
-					if (curr_light->is_in_light_frustum(world_bounding)) {
-						//shadowmap_renderer.add_instance_to_light(curr_light->light_id, node->mesh, node->material->color_texture.texture, node->material->alpha_cutoff, node_model);
-					}
-				}
-
-				for (uint16_t light_i = 0; light_i < _scene_directional_lights.size(); light_i++) {
-					LightEntity* curr_light = _scene_directional_lights[light_i];
-
-					if (curr_light->is_in_light_frustum(world_bounding)) {
-						//shadowmap_renderer.add_instance_to_light(curr_light->light_id, node->mesh, node->material->color_texture.texture, node->material->alpha_cutoff, node_model);
-					}
-				}
 			}
 		}
 		//iterate recursively with children
@@ -75,15 +53,20 @@ void Renderer::compute_visible_objects(std::vector<PrefabEntity*> prefabs, Camer
 			add_to_visibility_list(prefab_model, node->children[i], camera, pbr);
 	};
 
-	for (int i = 0; prefabs.size(); i++) {
-		PrefabEntity* pent = prefabs[i];
+	for (int i = 0; scene_prefabs.size(); i++) {
+		PrefabEntity* pent = scene_prefabs[i];
 
 		if (!pent->prefab->root.visible)
 			continue;
 		Matrix44 node_model = pent->prefab->root.getGlobalMatrix(true) * pent->model;
 		add_to_visibility_list(node_model, &(pent->prefab->root), camera, pent->pbr_structure);
 	}
-}*/
+
+	// Order the opaque & translucent
+	std::sort(opaque_calls->begin(), opaque_calls->end(), opaque_draw_call_distance_comp);
+	std::sort(translucent_calls->begin(), translucent_calls->end(), translucent_draw_call_distance_comp);
+
+}
 
 
 void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
@@ -95,7 +78,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	checkGLErrors();
 
-	std::vector<PrefabEntity*> scene_prefabs;
+	
 
 	//render entities
 	for (int i = 0; i < scene->entities.size(); ++i)
@@ -206,6 +189,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	_translucent_objects.clear();
 	_scene_directional_lights.clear();
 	_scene_non_directonal_lights.clear();
+	scene_prefabs.clear();
 
 	// Show the shadowmap
 	if (show_shadowmap) {
