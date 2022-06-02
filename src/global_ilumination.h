@@ -2,6 +2,7 @@
 
 #include "includes.h"
 #include "utils.h"
+#include "camera.h"
 #include "fbo.h"
 #include "sphericalharmonics.h"
 
@@ -20,10 +21,14 @@ namespace GTR {
 		SphericalHarmonics harmonics[MAX_PROBE_COUNT];
 		uint32_t linear_indices[MAX_PROBE_COUNT];
 
-		void init();
+		// Debug ===
+
+		void init(Renderer *rend_inst);
 
 		void render_to_probe(const uint32_t probe_id);
 
-		void debug_render_probe(const uint32_t probe_id);
+		void render_imgui();
+
+		void debug_render_probe(const uint32_t probe_id, const float radius, Camera* cam);
 	};
 };

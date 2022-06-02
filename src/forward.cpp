@@ -70,7 +70,7 @@ inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_cal
 
 	// Upload light data
 	// Common data of the lights
-	shader->setUniform("u_ambient_light", ambient_light);
+	shader->setUniform("u_ambient_light", ambient_ligh);
 	shader->setUniform3Array("u_light_pos", (float*)draw_call.light_positions, draw_call.light_count);
 	shader->setUniform3Array("u_light_color", (float*)draw_call.light_color, draw_call.light_count);
 	shader->setUniform1Array("u_light_type", (int*)draw_call.light_type, draw_call.light_count);

@@ -53,7 +53,7 @@ void Renderer::compute_visible_objects( Camera* camera, std::vector<sDrawCall>* 
 			add_to_visibility_list(prefab_model, node->children[i], camera, pbr);
 	};
 
-	for (int i = 0; scene_prefabs.size(); i++) {
+	for (int i = 0; i < scene_prefabs.size(); i++) {
 		PrefabEntity* pent = scene_prefabs[i];
 
 		if (!pent->prefab->root.visible)
@@ -119,8 +119,6 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 		add_to_render_queue(pent->model, &(pent->prefab->root), camera, pent->pbr_structure);
 	}
 
-	scene_prefabs.clear();
-
 	// Iterate all the lights on the scene
 	for (uint16_t light_i = 0; light_i < _scene_non_directonal_lights.size(); light_i++) {
 		LightEntity *curr_light = _scene_non_directonal_lights[light_i];
@@ -165,6 +163,8 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	std::sort(_opaque_objects.begin(), _opaque_objects.end(), opaque_draw_call_distance_comp);
 	std::sort(_translucent_objects.begin(), _translucent_objects.end(), translucent_draw_call_distance_comp);
 
+	irradiance_component.render_to_probe(0);
+
 	switch(current_pipeline) {
 	case FORWARD:
 		forwardRenderScene(scene, camera, final_illumination_fbo);
@@ -175,6 +175,10 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	default:
 		break;
 	}
+
+	final_illumination_fbo->bind();
+	irradiance_component.debug_render_probe(0, 10.0, camera);
+	final_illumination_fbo->unbind();
 
 	Texture* end_result = final_illumination_fbo->color_textures[0];
 
@@ -346,6 +350,7 @@ void Renderer::init() {
 	shadowmap_renderer.init();
 	ao_component.init();
 	tonemapping_component.init();
+	irradiance_component.init(this);
 
 	final_illumination_fbo = new FBO();
 

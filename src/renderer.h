@@ -4,6 +4,7 @@
 #include "application.h"
 #include "shadows.h"
 #include "ambient_occlusion.h"
+#include "global_ilumination.h"
 #include "tonemapping.h"
 #include <algorithm>
 
@@ -125,6 +126,7 @@ namespace GTR {
 		ShadowRenderer shadowmap_renderer;
 		SSAO_Component ao_component;
 		Tonemapping_Component tonemapping_component;
+		sGI_Component irradiance_component;
 
 		// CONFIG FLAGS =====
 		eRenderPipe current_pipeline = FORWARD;
@@ -263,6 +265,7 @@ namespace GTR {
 				break;
 			}
 			tonemapping_component.imgui_config();
+			irradiance_component.render_imgui();
 #endif
 		}
 	};

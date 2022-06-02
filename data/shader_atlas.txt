@@ -5,6 +5,7 @@ shadow_flat basic.vs shadow_flat.fs
 texture basic.vs texture.fs
 depth quad.vs depth.fs
 multi basic.vs multi.fs
+probe basic.vs probe.fs
 // Phong
 multi_phong basic.vs multi_phong.fs
 single_phong basic.vs single_phong.fs
@@ -25,8 +26,60 @@ compute_lum quad.vs compute_lum.fs
 blur quad.vs blur.fs
 compute_max_and_avg_lum quad.vs compute_max_and_avg_lum.fs
 
-\depth_functions
+\sphere_harmonics
+const float Pi = 3.141592654;
+const float CosineA0 = Pi;
+const float CosineA1 = (2.0 * Pi) / 3.0;
+const float CosineA2 = Pi * 0.25;
 
+void SHCosineLobe(in vec3 dir, out float sphere_weight[9]) //SH9
+{
+	// Band 0
+	sphere_weight[0] = 0.282095 * CosineA0;
+	// Band 1
+	sphere_weight[1] = 0.488603 * dir.y * CosineA1; 
+	sphere_weight[2] = 0.488603 * dir.z * CosineA1;
+	sphere_weight[3] = 0.488603 * dir.x * CosineA1;
+	// Band 2
+	sphere_weight[4] = 1.092548 * dir.x * dir.y * CosineA2;
+	sphere_weight[5] = 1.092548 * dir.y * dir.z * CosineA2;
+	sphere_weight[6] = 0.315392 * (3.0 * dir.z * dir.z - 1.0) * CosineA2;
+	sphere_weight[7] = 1.092548 * dir.x * dir.z * CosineA2;
+	sphere_weight[8] = 0.546274 * (dir.x * dir.x - dir.y * dir.y) * CosineA2;
+}
+
+vec3 ComputeSHIrradiance(in vec3 normal, in vec3 sphere_colors[9])
+{
+	// Compute the cosine lobe in SH, oriented about the normal direction
+	float shCosine[9];
+	SHCosineLobe(normal, shCosine);
+	// Compute the SH dot product to get irradiance
+	vec3 irradiance = vec3(0.0);
+	for(int i = 0; i < 9; ++i)
+		irradiance += shCosine[i] * sphere_colors[i];
+
+	return irradiance;
+}
+
+\probe.fs
+
+#version 330 core
+
+in vec3 v_position;
+in vec3 v_world_position;
+in vec3 v_normal;
+
+uniform vec3 coefs[9];
+
+out vec4 FragColor;
+#include "sphere_harmonics"
+
+void main()
+{
+	FragColor = vec4(ComputeSHIrradiance(normalize(v_normal), coefs), 1.0);
+}
+
+\depth_functions
 const vec3 TILES_SIZES[MAX_SHADOWS] = vec3[](
 	vec3(0.0, 0.5, 0.5), // Tile 0
 	vec3(0.0, 0.0, 0.5), // 1
