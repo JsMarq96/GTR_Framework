@@ -89,7 +89,7 @@ inline void GTR::Renderer::forwardOpacyRenderDrawCall(const sDrawCall& draw_call
 	glDisable(GL_BLEND);
 }
 
-void GTR::Renderer::deferredRenderScene(const Scene* scene, Camera *cam) {
+void GTR::Renderer::deferredRenderScene(const Scene* scene, Camera* camera, FBO* resulting_fbo, CULLING::sSceneCulling* scene_data) {
 	deferred_gbuffer->bind();
 
 	// Clean last frame
@@ -114,18 +114,16 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene, Camera *cam) {
 	// Note, only render the opaque drawcalls
 
 	//std::cout << _opaque_objects.size() << std::endl;
-	for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
-		renderDeferredPlainDrawCall(_opaque_objects[i], scene);
+	for (uint16_t i = 0; i < scene_data->_opaque_objects.size(); i++) {
+		renderDeferredPlainDrawCall(scene_data->_opaque_objects[i], scene);
 	}
 
 	deferred_gbuffer->unbind();
 
-	camera = cam;
-
 	switch (deferred_output) {
 	case WORLD_POS:
 	case RESULT:
-		renderDefferredPass(scene);
+		renderDefferredPass(scene, scene_data);
 		break;
 	case COLOR:
 		deferred_gbuffer->color_textures[0]->toViewport();
@@ -156,7 +154,7 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene, Camera *cam) {
 	};
 } 
 
-void GTR::Renderer::renderDefferredPass(const Scene* scene) {
+void GTR::Renderer::renderDefferredPass(const Scene* scene, CULLING::sSceneCulling * scene_data) {
 	// Compute AO
 	Texture* ao_tex = NULL;
 	if (use_ssao) {
@@ -198,8 +196,8 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 	int light_shadow_id[MAX_LIGHT_NUM];
 	uint16_t light_count = 0;
 
-	for (; light_count < _scene_directional_lights.size(); light_count++) {
-		LightEntity* light_ent = _scene_directional_lights[light_count];
+	for (; light_count < scene_data->_scene_directional_lights.size(); light_count++) {
+		LightEntity* light_ent = scene_data->_scene_directional_lights[light_count];
 
 		light_positions[light_count] = light_ent->get_translation();
 		light_color[light_count] = light_ent->color;
@@ -233,12 +231,12 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene) {
 	// Copy the depth shader to the illumination shader
 	deferred_gbuffer->depth_texture->copyTo(NULL);
 
-	renderDeferredLightVolumes();
+	renderDeferredLightVolumes(scene_data);
 
 	// Avoid the translucent to write to the depth buffer
 	//glDepthMask(false);
-	for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
-		forwardOpacyRenderDrawCall(_translucent_objects[i], scene);
+	for (uint16_t i = 0; i < scene_data->_translucent_objects.size(); i++) {
+		forwardOpacyRenderDrawCall(scene_data->_translucent_objects[i], scene);
 	}
 	//glDepthMask(true);
 

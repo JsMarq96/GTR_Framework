@@ -2,7 +2,7 @@
 
 // Defintion of the Deferred rendering functions
 
-void GTR::Renderer::renderDeferredLightVolumes() {
+void GTR::Renderer::renderDeferredLightVolumes(CULLING::sSceneCulling *scene_data) {
 	// Set depth test as only max, without writting to it
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_GREATER);
@@ -38,8 +38,8 @@ void GTR::Renderer::renderDeferredLightVolumes() {
 	shader->setUniform("u_time", (float) getTime());
 
 	// TODO: Render point lights
-	for (uint16_t i = 0; i < _scene_non_directonal_lights.size(); i++) {
-		LightEntity* light = _scene_non_directonal_lights[i];
+	for (uint16_t i = 0; i < scene_data->_scene_non_directonal_lights.size(); i++) {
+		LightEntity* light = scene_data->_scene_non_directonal_lights[i];
 
 		mat4 model, scaling, rotation;
 
@@ -112,8 +112,8 @@ void GTR::Renderer::renderDeferredLightVolumes() {
 	shaderp->setUniform("u_viewprojection", camera->viewprojection_matrix);
 
 	// TODO: Render point lights
-	for (uint16_t i = 0; i < _scene_non_directonal_lights.size(); i++) {
-		LightEntity* light = _scene_non_directonal_lights[i];
+	for (uint16_t i = 0; i < scene_data->_scene_non_directonal_lights.size(); i++) {
+		LightEntity* light = scene_data->_scene_non_directonal_lights[i];
 
 		mat4 model, scaling, rotation;
 

@@ -1,36 +1,36 @@
 #include "renderer.h"
 
 // Definition of the forward renderer functions
-void GTR::Renderer::forwardRenderScene(const Scene* scene, Camera* camera, FBO* result_fbo) {
-	result_fbo->bind();
+void GTR::Renderer::forwardRenderScene(const Scene* scene, Camera* camera, FBO* resulting_fbo, CULLING::sSceneCulling* scene_data) {
+	resulting_fbo->bind();
 
-	result_fbo->enableSingleBuffer(0);
+	resulting_fbo->enableSingleBuffer(0);
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	if (use_single_pass) {
 		// First, render the opaque object
-		for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
-			forwardSingleRenderDrawCall(_opaque_objects[i], camera, scene->ambient_light);
+		for (uint16_t i = 0; i < scene_data->_opaque_objects.size(); i++) {
+			forwardSingleRenderDrawCall(scene_data->_opaque_objects[i], camera, scene->ambient_light);
 		}
 
 		// then, render the translucnet, and masked objects
-		for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
-			forwardSingleRenderDrawCall(_translucent_objects[i], camera, scene->ambient_light);
+		for (uint16_t i = 0; i < scene_data->_translucent_objects.size(); i++) {
+			forwardSingleRenderDrawCall(scene_data->_translucent_objects[i], camera, scene->ambient_light);
 		}
 	}
 	else {
 		// First, render the opaque object
-		for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
-			forwardMultiRenderDrawCall(_opaque_objects[i], camera, scene);
+		for (uint16_t i = 0; i < scene_data->_opaque_objects.size(); i++) {
+			forwardMultiRenderDrawCall(scene_data->_opaque_objects[i], camera, scene);
 		}
 
 		// then, render the translucnet, and masked objects
-		for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
-			forwardMultiRenderDrawCall(_translucent_objects[i], camera, scene);
+		for (uint16_t i = 0; i < scene_data->_translucent_objects.size(); i++) {
+			forwardMultiRenderDrawCall(scene_data->_translucent_objects[i], camera, scene);
 		}
 	}
-	result_fbo->unbind();
+	resulting_fbo->unbind();
 }
 
 inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Camera *cam, const vec3 ambient_ligh) {

@@ -1450,7 +1450,6 @@ void main()
 
 	if(color.a < u_alpha_cutoff)
 		discard;
-
 	// Load fragment
 	sFragData frag_data = getDataOfFragment(v_uv);
 

@@ -10,63 +10,10 @@
 #include "utils.h"
 #include "scene.h"
 #include "extra/hdre.h"
+#include "frusturm_culling.h"
 #include <functional>
 
 using namespace GTR;
-
-bool translucent_draw_call_distance_comp(const GTR::sDrawCall& d1, const GTR::sDrawCall& d2) {
-	return d1.camera_distance > d2.camera_distance;
-}
-bool opaque_draw_call_distance_comp(const GTR::sDrawCall& d1, const GTR::sDrawCall& d2) {
-	return d1.camera_distance < d2.camera_distance;
-}
-
-void Renderer::compute_visible_objects( Camera* camera, std::vector<sDrawCall>* opaque_calls, std::vector<sDrawCall>* translucent_calls) {
-	// Dirty curring..?
-	std::function<void(const Matrix44&, GTR::Node*, Camera*, ePBR_Type)> add_to_visibility_list;
-	add_to_visibility_list = [translucent_calls, opaque_calls, &add_to_visibility_list](const Matrix44& prefab_model, GTR::Node* node, Camera* camera, ePBR_Type pbr) {
-		if (node->mesh && node->material) {
-
-			//compute global matrix
-			Matrix44 node_model = node->getGlobalMatrix(true) * prefab_model;
-			//compute the bounding box of the object in world space (by using the mesh bounding box transformed to world space)
-			BoundingBox world_bounding = transformBoundingBox(node_model, node->mesh->box);
-
-			//if bounding box is inside the camera frustum then the object is probably visible
-			if (camera->testBoxInFrustum(world_bounding.center, world_bounding.halfsize))
-			{
-				// Compute the closest distance between the bounding box of the mesh and the camera
-				float camera_distance = Min((world_bounding.center + world_bounding.halfsize).distance(camera->eye), world_bounding.center.distance(camera->eye));
-				camera_distance = Min(camera_distance, (world_bounding.center - world_bounding.halfsize).distance(camera->eye));
-				//add_to_visibility_list(node_model, pent->prefab->root.mesh, pent->prefab->root.material, camera, world_bounding.center.distance(camera->eye), world_bounding, pent->pbr_structure);
-				// Based on the material, we add it to the translucent or the opaque queue
-				if (node->material->alpha_mode != NO_ALPHA) {
-					translucent_calls->push_back(sDrawCall{ node_model,  node->mesh,  node->material, camera, camera_distance, pbr, world_bounding });
-				}
-				else {
-					opaque_calls->push_back(sDrawCall{ node_model,  node->mesh,  node->material, camera, camera_distance, pbr, world_bounding });
-				}
-			}
-		}
-		//iterate recursively with children
-		for (int i = 0; i < node->children.size(); ++i)
-			add_to_visibility_list(prefab_model, node->children[i], camera, pbr);
-	};
-
-	for (int i = 0; i < scene_prefabs.size(); i++) {
-		PrefabEntity* pent = scene_prefabs[i];
-
-		if (!pent->prefab->root.visible)
-			continue;
-		Matrix44 node_model = pent->prefab->root.getGlobalMatrix(true) * pent->model;
-		add_to_visibility_list(node_model, &(pent->prefab->root), camera, pent->pbr_structure);
-	}
-
-	// Order the opaque & translucent
-	std::sort(opaque_calls->begin(), opaque_calls->end(), opaque_draw_call_distance_comp);
-	std::sort(translucent_calls->begin(), translucent_calls->end(), translucent_draw_call_distance_comp);
-
-}
 
 
 void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
@@ -78,110 +25,37 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	checkGLErrors();
 
-	
-
 	//render entities
-	for (int i = 0; i < scene->entities.size(); ++i)
-	{
-		BaseEntity* ent = scene->entities[i];
-		if (!ent->visible)
-			continue;
+	CULLING::sSceneCulling culling_result;
 
-		//is a prefab!
-		if (ent->entity_type == PREFAB)
-		{
-			PrefabEntity* pent = (GTR::PrefabEntity*)ent;
-			if (pent->prefab) {
-				scene_prefabs.push_back(pent);
-			}
-			else {
-				assert("PREFAB IS NULL");
-			}
-		} else if (ent->entity_type == LIGHT) {
-			LightEntity* curr_light = (LightEntity*)ent;
-
-			if (curr_light->light_type == DIRECTIONAL_LIGHT) {
-				_scene_directional_lights.push_back(curr_light);
-			}
-			else {
-				_scene_non_directonal_lights.push_back(curr_light);
-			}
-			
-			uint16_t light_id = 0;
-			if (curr_light->light_type == DIRECTIONAL_LIGHT || curr_light->light_type == SPOT_LIGHT) {
-				light_id = shadowmap_renderer.add_light(curr_light);
-			}
-		}
-	}
-
-	for (uint16_t i = 0; i < scene_prefabs.size(); i++) {
-		PrefabEntity* pent = scene_prefabs[i];
-		add_to_render_queue(pent->model, &(pent->prefab->root), camera, pent->pbr_structure);
-	}
-
-	// Iterate all the lights on the scene
-	for (uint16_t light_i = 0; light_i < _scene_non_directonal_lights.size(); light_i++) {
-		LightEntity *curr_light = _scene_non_directonal_lights[light_i];
-
-		// Check if the opaque object is in range of the light
-		for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
-			if (curr_light->is_in_range(_opaque_objects[i].aabb)) {
-				_opaque_objects[i].add_light(curr_light);
-			}
-		}
-
-		// Check if the translucent object is in range of the light
-		for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
-			if (curr_light->is_in_range(_translucent_objects[i].aabb)) {
-				_translucent_objects[i].add_light(curr_light);
-			}
-		}
-	}
-
-	for (uint16_t light_i = 0; light_i < _scene_directional_lights.size(); light_i++) {
-		LightEntity* curr_light = _scene_directional_lights[light_i];
-
-		// Check if the opaque object is in range of the light
-		for (uint16_t i = 0; i < _opaque_objects.size(); i++) {
-			if (curr_light->is_in_range(_opaque_objects[i].aabb)) {
-				_opaque_objects[i].add_light(curr_light);
-			}
-		}
-
-		// Check if the translucent object is in range of the light
-		for (uint16_t i = 0; i < _translucent_objects.size(); i++) {
-			if (curr_light->is_in_range(_translucent_objects[i].aabb)) {
-				_translucent_objects[i].add_light(curr_light);
-			}
-		}
-	}
+	CULLING::frustrum_culling(scene->entities, &culling_result, camera);
 
 	// Render shadows
 	shadowmap_renderer.render_scene_shadows(camera);
 
-	// Order the opaque & translucent
-	std::sort(_opaque_objects.begin(), _opaque_objects.end(), opaque_draw_call_distance_comp);
-	std::sort(_translucent_objects.begin(), _translucent_objects.end(), translucent_draw_call_distance_comp);
+	// Compute irradiance
+	//irradiance_component.render_to_probe(0);
 
-	irradiance_component.render_to_probe(0);
-
+	// Render scene
 	switch(current_pipeline) {
 	case FORWARD:
-		forwardRenderScene(scene, camera, final_illumination_fbo);
+		forwardRenderScene(scene, camera, final_illumination_fbo, &culling_result);
 		break;
 	case DEFERRED:
-		deferredRenderScene(scene, camera);
+		deferredRenderScene(scene, camera, final_illumination_fbo, &culling_result);
 		break;
 	default:
 		break;
 	}
 
-	final_illumination_fbo->bind();
-	irradiance_component.debug_render_probe(0, 10.0, camera);
-	final_illumination_fbo->unbind();
+	// Irradiance test
+	//final_illumination_fbo->bind();
+	//irradiance_component.debug_render_probe(0, 10.0, camera);
+	//final_illumination_fbo->unbind();
 
+
+	// Post-processing Tonemmaping
 	Texture* end_result = final_illumination_fbo->color_textures[0];
-
 	// Only add tonemapping if its the final image
 	if (deferred_output == RESULT) {
 		end_result = tonemapping_component.pass(end_result);
@@ -189,11 +63,8 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 
 	end_result->toViewport();
 
-	_opaque_objects.clear();
-	_translucent_objects.clear();
-	_scene_directional_lights.clear();
-	_scene_non_directonal_lights.clear();
-	scene_prefabs.clear();
+	// Cleanup & debug
+	culling_result.clear();
 
 	// Show the shadowmap
 	if (show_shadowmap) {
@@ -362,60 +233,4 @@ void Renderer::init() {
 
 	// No need to add any preparations for forward renderer
 	_init_deferred_renderer();
-}
-
-
-void Renderer::add_to_render_queue(const Matrix44& prefab_model, GTR::Node* node, Camera* camera, ePBR_Type pbr) {
-	if (!node->visible)
-		return;
-
-	//compute global matrix
-	Matrix44 node_model = node->getGlobalMatrix(true) * prefab_model;
-
-	//does this node have a mesh? then we must render it
-	if (node->mesh && node->material)
-	{
-		//compute the bounding box of the object in world space (by using the mesh bounding box transformed to world space)
-		BoundingBox world_bounding = transformBoundingBox(node_model, node->mesh->box);
-
-		//if bounding box is inside the camera frustum then the object is probably visible
-		if (camera->testBoxInFrustum(world_bounding.center, world_bounding.halfsize))
-		{
-			// Compute the closest distance between the bounding box of the mesh and the camera
-			float camera_distance = Min((world_bounding.center + world_bounding.halfsize).distance(camera->eye), world_bounding.center.distance(camera->eye));
-			camera_distance = Min(camera_distance, (world_bounding.center - world_bounding.halfsize).distance(camera->eye));
-			add_draw_instance(node_model, node->mesh, node->material, camera, world_bounding.center.distance(camera->eye), world_bounding, pbr);
-		}
-
-		// Test if the objects is on the light's frustum
-		for (uint16_t light_i = 0; light_i < _scene_non_directonal_lights.size(); light_i++) {
-			LightEntity* curr_light = _scene_non_directonal_lights[light_i];
-
-			if (curr_light->is_in_light_frustum(world_bounding)) {
-				shadowmap_renderer.add_instance_to_light(curr_light->light_id, node->mesh, node->material->color_texture.texture, node->material->alpha_cutoff, node_model);
-			}
-		}
-
-		for (uint16_t light_i = 0; light_i < _scene_directional_lights.size(); light_i++) {
-			LightEntity* curr_light = _scene_directional_lights[light_i];
-
-			if (curr_light->is_in_light_frustum(world_bounding)) {
-				shadowmap_renderer.add_instance_to_light(curr_light->light_id, node->mesh, node->material->color_texture.texture, node->material->alpha_cutoff, node_model);
-			}
-		}
-	}
-
-	//iterate recursively with children
-	for (int i = 0; i < node->children.size(); ++i)
-		add_to_render_queue(prefab_model, node->children[i], camera, pbr);
-}
-
-void Renderer::add_draw_instance(const Matrix44 model, Mesh* mesh, GTR::Material* material, Camera* camera, const float camera_distance, const BoundingBox &aabb, const ePBR_Type pbr) {
-	// Based on the material, we add it to the translucent or the opaque queue
-	if (material->alpha_mode != NO_ALPHA) {
-		_translucent_objects.push_back(sDrawCall{ model, mesh, material, camera, camera_distance, pbr, aabb });
-	}
-	else {
-		_opaque_objects.push_back(sDrawCall{ model, mesh, material, camera,  camera_distance, pbr, aabb });
-	}
 }
