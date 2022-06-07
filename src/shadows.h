@@ -136,6 +136,34 @@ namespace GTR {
 					}
 				}
 			}
+			for (uint32_t i = 0; i < scene_data->_translucent_objects.size(); i++) {
+				BoundingBox world_bounding = scene_data->_translucent_objects[i].aabb;
+
+				// Test if the objects is on the light's frustum
+				for (uint16_t light_i = 0; light_i < scene_data->_scene_non_directonal_lights.size(); light_i++) {
+					LightEntity* curr_light = scene_data->_scene_non_directonal_lights[light_i];
+
+					if (curr_light->is_in_light_frustum(world_bounding)) {
+						add_instance_to_light(curr_light->shadow_id,
+							scene_data->_translucent_objects[i].mesh,
+							scene_data->_translucent_objects[i].material->color_texture.texture,
+							scene_data->_translucent_objects[i].material->alpha_cutoff,
+							scene_data->_translucent_objects[i].model);
+					}
+				}
+
+				for (uint16_t light_i = 0; light_i < scene_data->_scene_directional_lights.size(); light_i++) {
+					LightEntity* curr_light = scene_data->_scene_directional_lights[light_i];
+
+					if (curr_light->is_in_light_frustum(world_bounding)) {
+						add_instance_to_light(curr_light->shadow_id,
+							scene_data->_translucent_objects[i].mesh,
+							scene_data->_translucent_objects[i].material->color_texture.texture,
+							scene_data->_translucent_objects[i].material->alpha_cutoff,
+							scene_data->_translucent_objects[i].model);
+					}
+				}
+			}
 		}
 
 		inline void renderInMenu() {

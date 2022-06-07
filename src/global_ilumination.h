@@ -5,6 +5,7 @@
 #include "camera.h"
 #include "fbo.h"
 #include "sphericalharmonics.h"
+#include "scene.h"
 
 namespace GTR {
 
@@ -25,7 +26,7 @@ namespace GTR {
 
 		void init(Renderer *rend_inst);
 
-		void render_to_probe(const uint32_t probe_id);
+		void render_to_probe(const std::vector<BaseEntity*> entity_list, const uint32_t probe_id);
 
 		void render_imgui();
 

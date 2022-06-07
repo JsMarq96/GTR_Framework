@@ -1,5 +1,6 @@
 #include "global_ilumination.h"
 #include "renderer.h"
+#include "frusturm_culling.h"
 
 void GTR::sGI_Component::init(Renderer* rend_inst) {
 	renderer_instance = rend_inst;
@@ -15,7 +16,7 @@ void GTR::sGI_Component::init(Renderer* rend_inst) {
 }
 
 // Generate probe coefficients
-void GTR::sGI_Component::render_to_probe(const uint32_t probe_id) {
+void GTR::sGI_Component::render_to_probe(const std::vector<BaseEntity*> entity_list, const uint32_t probe_id) {
 	FloatImage cube_views[6];
 
 	Camera render_cam;
@@ -32,9 +33,8 @@ void GTR::sGI_Component::render_to_probe(const uint32_t probe_id) {
 		render_cam.lookAt(eye, center, up);
 
 		// Given the scene, and a camara, perform frustum culling
-		std::vector<sDrawCall> opaque_draw_calls;
-		std::vector<sDrawCall> translucent_draw_calls;
-		//renderer_instance->compute_visible_objects(&render_cam, &opaque_draw_calls, &translucent_draw_calls);
+		CULLING::sSceneCulling culling_result;
+		CULLING::frustrum_culling(entity_list, &culling_result, &render_cam);
 
 		// Bind and enable the fbo
 		irradiance_fbo->bind();
@@ -46,17 +46,16 @@ void GTR::sGI_Component::render_to_probe(const uint32_t probe_id) {
 		glDepthFunc(GL_ALWAYS);
 
 		// First, render the opaque object
-		for (uint16_t i = 0; i < opaque_draw_calls.size(); i++) {
-			renderer_instance->forwardSingleRenderDrawCall(opaque_draw_calls[i], &render_cam, vec3(1.0f, 0.0f, 0.0f));
+		for (uint16_t i = 0; i < culling_result._opaque_objects.size(); i++) {
+			renderer_instance->forwardSingleRenderDrawCall(culling_result._opaque_objects[i], &render_cam, vec3(1.0f, 1.0f, 1.0f));
 		}
 
 		// then, render the translucnet, and masked objects
-		for (uint16_t i = 0; i < translucent_draw_calls.size(); i++) {
-			renderer_instance->forwardSingleRenderDrawCall(translucent_draw_calls[i], &render_cam, vec3(1.0f, 0.0f, 0.0f));
+		for (uint16_t i = 0; i < culling_result._translucent_objects.size(); i++) {
+			renderer_instance->forwardSingleRenderDrawCall(culling_result._translucent_objects[i], &render_cam, vec3(1.0f, 1.0f, 1.0f));
 		}
 
-		opaque_draw_calls.clear();
-		translucent_draw_calls.clear();
+		culling_result.clear();
 
 		glDepthFunc(GL_LESS);
 		//glDisable(GL_DEPTH_TEST);
@@ -76,7 +75,7 @@ void GTR::sGI_Component::render_imgui() {
 	ImGui::SliderFloat3("Probe 1 position", (float*)&probe_position[0], -100, 100);
 
 	if (ImGui::Button("Store to probe")) {
-		render_to_probe(0);
+		//render_to_probe(0);
 	}
 }
 
