@@ -1463,7 +1463,7 @@ void main()
 		float shadow_compoment = 1.0;
 
 		if (u_light_type[i] != 0) { // Calculate if its in shadow if its not a point-light
-			shadow_compoment = get_shadow_component(i, frag_data.world_pos);
+			shadow_compoment = get_shadow_component(u_light_shadow_id[i], frag_data.world_pos);
 		}
 
 		if (shadow_compoment == 0) {

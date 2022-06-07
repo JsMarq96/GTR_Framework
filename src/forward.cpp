@@ -63,6 +63,12 @@ inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_cal
 
 	assert(glGetError() == GL_NO_ERROR);
 
+	// Prepare shadow ids
+	int* shadow_ids = (int*)malloc(sizeof(int) * draw_call.light_count);
+	for (int i = 0; i < draw_call.light_count; i++) {
+		shadow_ids[i] = (int) draw_call.lights_for_call[i]->shadow_id;
+	}
+
 	//no shader? then nothing to render
 	if (!shader)
 		return;
@@ -74,10 +80,12 @@ inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_cal
 	shader->setUniform3Array("u_light_pos", (float*)draw_call.light_positions, draw_call.light_count);
 	shader->setUniform3Array("u_light_color", (float*)draw_call.light_color, draw_call.light_count);
 	shader->setUniform1Array("u_light_type", (int*)draw_call.light_type, draw_call.light_count);
-	shader->setUniform1Array("u_light_shadow_id", (int*)draw_call.light_shadow_id, draw_call.light_count);
+	shader->setUniform1Array("u_light_shadow_id", shadow_ids, draw_call.light_count);
 	shader->setUniform1Array("u_light_max_dist", (float*)draw_call.light_max_distance, draw_call.light_count);
 	shader->setUniform1Array("u_light_intensities", draw_call.light_intensities, draw_call.light_count);
 	shader->setUniform("u_num_lights", draw_call.light_count);
+
+	free(shadow_ids);
 
 	// Spotlight data of the lights
 	shader->setUniform3Array("u_light_direction", (float*)draw_call.light_direction, draw_call.light_count);

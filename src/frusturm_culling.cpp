@@ -13,7 +13,7 @@ namespace GTR {
 		}
 
 		void frustrum_culling(std::vector<GTR::BaseEntity*> entities, sSceneCulling* culling_result, Camera *cam) {
-			
+			int total_light_count = 0;
 			// Get all the prefabs (that need to be rendered and the lights from the entitty list
 			for (int i = 0; i < entities.size(); ++i)
 			{
@@ -34,17 +34,13 @@ namespace GTR {
 				}
 				else if (ent->entity_type == LIGHT) {
 					LightEntity* curr_light = (LightEntity*)ent;
+					curr_light->light_id = total_light_count++;
 
 					if (curr_light->light_type == DIRECTIONAL_LIGHT) {
 						culling_result->_scene_directional_lights.push_back(curr_light);
 					}
 					else {
 						culling_result->_scene_non_directonal_lights.push_back(curr_light);
-					}
-
-					uint16_t light_id = 0;
-					if (curr_light->light_type == DIRECTIONAL_LIGHT || curr_light->light_type == SPOT_LIGHT) {
-						//light_id = shadowmap_renderer.add_light(curr_light);
 					}
 				}
 			}
@@ -119,23 +115,6 @@ namespace GTR {
 						float camera_distance = Min((world_bounding.center + world_bounding.halfsize).distance(camera->eye), world_bounding.center.distance(camera->eye));
 						camera_distance = Min(camera_distance, (world_bounding.center - world_bounding.halfsize).distance(camera->eye));
 						add_draw_instance(node_model, node->mesh, node->material, camera, world_bounding.center.distance(camera->eye), world_bounding, pbr);
-					}
-
-					// Test if the objects is on the light's frustum
-					for (uint16_t light_i = 0; light_i < _scene_non_directonal_lights.size(); light_i++) {
-						LightEntity* curr_light = _scene_non_directonal_lights[light_i];
-
-						if (curr_light->is_in_light_frustum(world_bounding)) {
-							//shadowmap_renderer.add_instance_to_light(curr_light->light_id, node->mesh, node->material->color_texture.texture, node->material->alpha_cutoff, node_model);
-						}
-					}
-
-					for (uint16_t light_i = 0; light_i < _scene_directional_lights.size(); light_i++) {
-						LightEntity* curr_light = _scene_directional_lights[light_i];
-
-						if (curr_light->is_in_light_frustum(world_bounding)) {
-							//shadowmap_renderer.add_instance_to_light(curr_light->light_id, node->mesh, node->material->color_texture.texture, node->material->alpha_cutoff, node_model);
-						}
 					}
 				}
 

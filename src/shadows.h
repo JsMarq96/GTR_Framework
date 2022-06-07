@@ -6,11 +6,12 @@
 #include "fbo.h"
 #include "shader.h"
 #include "application.h"
+#include "frusturm_culling.h"
 // ================
 	//  SHADOW RENDERER
 	// ================
 	//       
-#define SHADOW_MAP_RES 2048
+#define SHADOW_MAP_RES 4048
 
 namespace GTR {
 	struct sShadowDrawCall {
@@ -35,9 +36,9 @@ namespace GTR {
 			vec3(0.0, 0.5, 0.5), // Tile 0
 			vec3(0.0, 0.0, 0.5), // 1
 			vec3(0.5, 0.0, 0.5), // 2
-			vec3(0.5, 0.25, 0.25), // 3
+			vec3(0.5, 0.5, 0.5), // 3
 			vec3(0.75, 0.0, 0.25), // 4
-			vec3(0.75, 0.25, 0.25), // 5
+			vec3(0.5, 0.0, 0.5), // 5
 			vec3(0.75, 0.5, 0.25) // 6
 		};
 
@@ -74,7 +75,6 @@ namespace GTR {
 
 		inline uint16_t add_light(LightEntity* light) {
 			draw_call_stack.push_back({ light });
-			light->light_id = draw_call_stack.size() - 1;
 			return light->light_id;
 		}
 
@@ -86,6 +86,56 @@ namespace GTR {
 			draw_call->albedo_textures.push_back(text);
 			draw_call->alpha_cutoffs.push_back(alpha_cutoff);
 			draw_call->obj_cout++;
+		}
+
+		void add_scene_data(CULLING::sSceneCulling* scene_data) {
+			// Add the lights to the shadowmap
+			draw_call_stack.resize(scene_data->_scene_non_directonal_lights.size() + scene_data->_scene_directional_lights.size());
+
+			int light_count = 0;
+			for (uint32_t i = 0; i < scene_data->_scene_directional_lights.size(); i++) {
+				LightEntity* curr_light = scene_data->_scene_directional_lights[i];
+				curr_light->shadow_id = light_count++;
+				draw_call_stack[curr_light->shadow_id] = { curr_light };
+			}
+			for (uint32_t i = 0; i < scene_data->_scene_non_directonal_lights.size(); i++) {
+				LightEntity* curr_light = scene_data->_scene_non_directonal_lights[i];
+				// Avoid pointlight shadowmaps
+				if (curr_light->light_type == DIRECTIONAL_LIGHT || curr_light->light_type == SPOT_LIGHT) {
+					curr_light->shadow_id = light_count++;
+					draw_call_stack[curr_light->shadow_id] = { curr_light };
+				}
+			}
+
+			// Add objects to the lights
+			for (uint32_t i = 0; i < scene_data->_opaque_objects.size(); i++) {
+				BoundingBox world_bounding = scene_data->_opaque_objects[i].aabb;
+
+				// Test if the objects is on the light's frustum
+				for (uint16_t light_i = 0; light_i < scene_data->_scene_non_directonal_lights.size(); light_i++) {
+					LightEntity* curr_light = scene_data->_scene_non_directonal_lights[light_i];
+
+					if (curr_light->is_in_light_frustum(world_bounding)) {
+						add_instance_to_light(curr_light->shadow_id,
+							scene_data->_opaque_objects[i].mesh, 
+							scene_data->_opaque_objects[i].material->color_texture.texture,
+							scene_data->_opaque_objects[i].material->alpha_cutoff,
+							scene_data->_opaque_objects[i].model);
+					}
+				}
+
+				for (uint16_t light_i = 0; light_i < scene_data->_scene_directional_lights.size(); light_i++) {
+					LightEntity* curr_light = scene_data->_scene_directional_lights[light_i];
+
+					if (curr_light->is_in_light_frustum(world_bounding)) {
+						add_instance_to_light(curr_light->shadow_id,
+							scene_data->_opaque_objects[i].mesh,
+							scene_data->_opaque_objects[i].material->color_texture.texture,
+							scene_data->_opaque_objects[i].material->alpha_cutoff,
+							scene_data->_opaque_objects[i].model);
+					}
+				}
+			}
 		}
 
 		inline void renderInMenu() {

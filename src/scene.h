@@ -119,7 +119,7 @@ namespace GTR {
 		float area_size = 1.0f;
 
 		// Shadowmap data
-		vec3 shadomap_tile = vec3();
+		int shadow_id = 0;
 		uint32_t light_id = 0;
 
 		LightEntity() { entity_type = LIGHT; }

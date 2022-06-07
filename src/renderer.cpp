@@ -31,6 +31,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	CULLING::frustrum_culling(scene->entities, &culling_result, camera);
 
 	// Render shadows
+	shadowmap_renderer.add_scene_data(&culling_result);
 	shadowmap_renderer.render_scene_shadows(camera);
 
 	// Compute irradiance

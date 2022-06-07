@@ -55,6 +55,10 @@ void GTR::ShadowRenderer::render_scene_shadows(Camera *cam) {
 	for (light_projection_count = 0; light_projection_count < draw_call_stack.size(); light_projection_count++) {
 		sShadowDrawCall& draw_call = draw_call_stack[light_projection_count];
 
+		if (draw_call.light == NULL) {
+			continue;
+		}
+
 		Camera light_cam;
 		// Set the view-projection
 		Matrix44& light_model = draw_call.light->get_model();
