@@ -50,10 +50,13 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	}
 
 	// Irradiance test
-	final_illumination_fbo->bind();
-	irradiance_component.debug_render_probe(0, 10.0, camera);
-	final_illumination_fbo->unbind();
+	//final_illumination_fbo->bind();
+	//irradiance_component.debug_render_probe(0, 10.0, camera);
+	//final_illumination_fbo->unbind();
 
+	if (deferred_output != RESULT && current_pipeline == DEFERRED) {
+		return;
+	}
 
 	// Post-processing Tonemmaping
 	Texture* end_result = final_illumination_fbo->color_textures[0];

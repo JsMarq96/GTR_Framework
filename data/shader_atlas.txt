@@ -880,7 +880,7 @@ sFragData getDataOfFragment(const in vec2 uv) {
 	}
 	mat.normal = N;
 
-	mat.emmisive = texture( u_emmisive_tex, v_uv ).rgb;
+	mat.emmisive =  de_gamma(texture( u_emmisive_tex, v_uv ).rgb);
 	mat.occlusion = min(texture( u_occlusion_tex, v_uv ).r, texture(u_ambient_occlusion_tex, v_uv).r);
 
 	mat.world_pos = v_world_position;
@@ -1454,6 +1454,7 @@ void main()
 	sFragData frag_data = getDataOfFragment(v_uv);
 
 	vec3 final_color = frag_data.albedo * (frag_data.occlusion * (u_ambient_light));
+	final_color.rgb += frag_data.emmisive;
 	vec3 light_component = vec3(0.0);
 	for(int i = 0; i < MAX_LIGHT; i++) {
 		if (i >= u_num_lights) {
