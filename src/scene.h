@@ -5,11 +5,10 @@
 #include "camera.h"
 #include <string>
 #include <algorithm>
+#include <iostream>
 
 //forward declaration
 class cJSON; 
-
-#include <iostream>
 
 
 //our namespace
@@ -24,16 +23,13 @@ namespace GTR {
 		DECALL = 5
 	};
 
-
 	enum ePBR_Type : int {
 		ROUGH_R_MET_G = 0,
 		ROUGH_G_MET_B
 	};
 
-
 	class Scene;
 	class Prefab;
-
 
 	//represents one element of the scene (could be lights, prefabs, cameras, etc)
 	class BaseEntity
@@ -85,9 +81,8 @@ namespace GTR {
 		BaseEntity* createEntity(std::string type);
 	};
 
-
 	// CUSTOM CLASSES =================
-	
+
 	enum eLightType : int {
 		POINT_LIGHT = 0,
 		DIRECTIONAL_LIGHT,
@@ -101,11 +96,11 @@ namespace GTR {
 	inline float max_f(const float x, const float y) {
 		return (x < y) ? y : x;
 	}
-	
+
 	class LightEntity : BaseEntity {
 	public:
 		eLightType light_type = POINT_LIGHT;
-		Vector3 color = {1,1,1};
+		Vector3 color = { 1,1,1 };
 		float intensity = 1.0f;
 		float max_distance = 10.0f;
 
@@ -114,7 +109,7 @@ namespace GTR {
 		// For Spotlight
 		float cone_angle = 0.0f;
 		float cone_exp_decay = 1.0f;
-		
+
 		// For Directional light
 		float area_size = 1.0f;
 
@@ -164,7 +159,7 @@ namespace GTR {
 				light_cam.setOrthographic(-half_area, half_area, half_area, -half_area, 0.1f, max_distance);
 			}
 
-			
+
 			//if bounding box is inside the light frustum then the object is probably visible
 			return light_cam.testBoxInFrustum(world_bbox.center, world_bbox.halfsize + vec3(0.1f, 0.1f, 0.1f));
 		}
@@ -177,7 +172,6 @@ namespace GTR {
 			return model;
 		}
 	};
-
 };
 
 #endif

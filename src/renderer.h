@@ -92,8 +92,8 @@ namespace GTR {
 		void renderDeferredLightVolumes(CULLING::sSceneCulling* scene_data);
 		void tonemappingPass();
 
-		void forwardRenderScene(const Scene* scene, Camera* camera, FBO *resulting_fbo, CULLING::sSceneCulling *scene_data);
-		void deferredRenderScene(const Scene* scene, Camera *camera, FBO* resulting_fbo, CULLING::sSceneCulling* scene_data);
+		void forwardRenderScene(const Scene* scene, Camera* camera, FBO* resulting_fbo, CULLING::sSceneCulling* scene_data);
+		void deferredRenderScene(const Scene* scene, Camera* camera, FBO* resulting_fbo, CULLING::sSceneCulling* scene_data);
 
 		void renderDeferredPlainDrawCall(const sDrawCall& draw_call, const Scene* scene);
 		void renderDefferredPass(const Scene* scene, CULLING::sSceneCulling* scene_data);
@@ -109,7 +109,7 @@ namespace GTR {
 
 		//renders several elements of the scene
 		void renderScene(GTR::Scene* scene, Camera* camera);
-	
+
 		//to render a whole prefab (with all its nodes)
 		void renderPrefab(const Matrix44& model, GTR::Prefab* prefab, Camera* camera);
 
@@ -138,31 +138,31 @@ namespace GTR {
 				enabled_textures += eTextMaterials::ALBEDO_MAT;
 				albedo_texture = Texture::getWhiteTexture(); //a 1x1 white texture
 			}
-				
+
 
 			if (emmisive_texture == NULL) {
 				enabled_textures += eTextMaterials::EMMISIVE_MAT;
 				emmisive_texture = Texture::getBlackTexture(); //a 1x1 black texture
 			}
-				
+
 
 			if (mr_texture == NULL) {
 				enabled_textures += eTextMaterials::MET_ROUGHT_MAT;
 				mr_texture = Texture::getWhiteTexture(); //a 1x1 white texture
 			}
-				
+
 
 			if (normal_texture == NULL) {
 				enabled_textures += eTextMaterials::NORMAL_MAT;
 				normal_texture = Texture::getBlackTexture(); //a 1x1 black texture
 			}
-				
+
 
 			if (occlusion_texture == NULL) {
 				enabled_textures += eTextMaterials::OCCLUSION_MAT;
 				occlusion_texture = Texture::getWhiteTexture(); //a 1x1 black texture
 			}
-				
+
 			shader->setUniform("u_texture", albedo_texture, 0);
 			shader->setUniform("u_emmisive_tex", emmisive_texture, 1);
 			shader->setUniform("u_met_rough_tex", mr_texture, 2);
@@ -181,9 +181,9 @@ namespace GTR {
 				ImGui::Checkbox("Linearize shadomap visualization", &liniearize_shadowmap_vis);
 			}
 
-			const char* rend_pipe[2] = { "FORWARD", "DEFERRED"};
-			const char* deferred_output_labels[DEFERRED_DEBUG_SIZE] = {"Final Result", "Color", "Normal", "Materials","Depth", "World pos.", "Emmisive", "Ambient occlusion", "Ambient occlusion blurred"};
-			ImGui::Combo("Rendering pipeline", (int*) &current_pipeline, rend_pipe, IM_ARRAYSIZE(rend_pipe));
+			const char* rend_pipe[2] = { "FORWARD", "DEFERRED" };
+			const char* deferred_output_labels[DEFERRED_DEBUG_SIZE] = { "Final Result", "Color", "Normal", "Materials","Depth", "World pos.", "Emmisive", "Ambient occlusion", "Ambient occlusion blurred" };
+			ImGui::Combo("Rendering pipeline", (int*)&current_pipeline, rend_pipe, IM_ARRAYSIZE(rend_pipe));
 
 			switch (current_pipeline) {
 			case FORWARD:

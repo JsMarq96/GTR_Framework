@@ -34,6 +34,7 @@ void GTR::sGI_Component::render_to_probe(const std::vector<BaseEntity*> entity_l
 
 		// Given the scene, and a camara, perform frustum culling
 		CULLING::sSceneCulling culling_result;
+		// Note: maybe start from scene culling is a bit of a waste
 		CULLING::frustrum_culling(entity_list, &culling_result, &render_cam);
 
 		// Bind and enable the fbo
@@ -47,12 +48,12 @@ void GTR::sGI_Component::render_to_probe(const std::vector<BaseEntity*> entity_l
 
 		// First, render the opaque object
 		for (uint16_t i = 0; i < culling_result._opaque_objects.size(); i++) {
-			renderer_instance->forwardSingleRenderDrawCall(culling_result._opaque_objects[i], &render_cam, vec3(1.0f, 1.0f, 1.0f));
+			renderer_instance->forwardSingleRenderDrawCall(culling_result._opaque_objects[i], &render_cam, vec3(0.250f, 0.250f, 0.250f));
 		}
 
 		// then, render the translucnet, and masked objects
 		for (uint16_t i = 0; i < culling_result._translucent_objects.size(); i++) {
-			renderer_instance->forwardSingleRenderDrawCall(culling_result._translucent_objects[i], &render_cam, vec3(1.0f, 1.0f, 1.0f));
+			renderer_instance->forwardSingleRenderDrawCall(culling_result._translucent_objects[i], &render_cam, vec3(0.250f, 0.250f, 0.250f));
 		}
 
 		culling_result.clear();

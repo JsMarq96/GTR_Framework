@@ -3,7 +3,6 @@
 
 #include "prefab.h"
 #include "extra/cJSON.h"
-#include <algorithm>
 
 GTR::Scene* GTR::Scene::instance = NULL;
 
@@ -128,10 +127,10 @@ GTR::BaseEntity* GTR::Scene::createEntity(std::string type)
 {
 	if (type == "PREFAB") {
 		return new GTR::PrefabEntity();
-	} else if (type == "LIGHT") {
+	}
+	else if (type == "LIGHT") {
 		return (GTR::BaseEntity*) new GTR::LightEntity();
 	}
-		
     return NULL;
 }
 
@@ -161,7 +160,6 @@ void GTR::PrefabEntity::configure(cJSON* json)
 		filename = cJSON_GetObjectItem(json, "filename")->valuestring;
 		prefab = GTR::Prefab::Get( (std::string("data/") + filename).c_str());
 	}
-
 	if (cJSON_GetObjectItem(json, "pbr_type"))
 	{
 		int pbr_id = cJSON_GetObjectItem(json, "pbr_type")->valueint;
@@ -203,27 +201,29 @@ void GTR::LightEntity::configure(cJSON* json) {
 		{
 			cone_exp_decay = readJSONNumber(json, "cone_exp", 60.0f);
 		}
-	} else if (light_type_raw == "DIRECTIONAL") {
+	}
+	else if (light_type_raw == "DIRECTIONAL") {
 		light_type = DIRECTIONAL_LIGHT;
 
 		if (cJSON_GetObjectItem(json, "area_size"))
 		{
 			area_size = readJSONNumber(json, "area_size", 1500.0f);
 		}
-	} else {
+	}
+	else {
 		light_type = POINT_LIGHT;
 	}
 
 	// Shared parameters upon all lights
 	if (cJSON_GetObjectItem(json, "angle"))
 	{
-		rotation_angle = readJSONNumber(json, "angle",0.0f);
+		rotation_angle = readJSONNumber(json, "angle", 0.0f);
 	}
 
 	if (cJSON_GetObjectItem(json, "color"))
 	{
 		color = readJSONVector3(json, "color", Vector3(1, 1, 1));
- 	}
+	}
 
 	if (cJSON_GetObjectItem(json, "intensity"))
 	{
@@ -236,15 +236,13 @@ void GTR::LightEntity::configure(cJSON* json) {
 	}
 }
 
-
-
 void GTR::LightEntity::renderInMenu() {
 #ifndef SKIP_IMGUI
 	std::string light_types[LIGHT_TYPE_COUNT] = { "Point light", "Directional light", "Spot light" };
 	ImGui::Text("Name: %s | %s", name.c_str(), light_types[light_type].c_str());
 	ImGui::Checkbox("Visible", &visible); // Edit 3 floats representing a color
 
-	ImGui::ColorEdit3("Light color", (float*) &color);
+	ImGui::ColorEdit3("Light color", (float*)&color);
 	ImGui::SliderFloat("Intensity", &intensity, 20.0f, 500.0f);
 	ImGui::SliderFloat("Max. distance", &max_distance, 0.0f, 1500.0f);
 

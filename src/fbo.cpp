@@ -245,13 +245,6 @@ void FBO::unbind()
 	assert(glGetError() == GL_NO_ERROR);
 }
 
-
-void FBO::setViewportAsUVs(const float x, const float y, const float width, const float height) {
-	Texture* tex = color_textures[0] ? color_textures[0] : depth_texture;
-
-	glViewport((int) (tex->width * x), (int) (tex->height * y), (int) (tex->width * width), (int) (tex->height * height));
-}
-
 void FBO::enableSingleBuffer(int num)
 {
 	assert(num < this->num_color_textures);
@@ -262,6 +255,12 @@ void FBO::enableSingleBuffer(int num)
 void FBO::enableAllBuffers()
 {
 	glDrawBuffers(4, bufs);
+}
+
+void FBO::setViewportAsUVs(const float x, const float y, const float width, const float height) {
+	Texture* tex = color_textures[0] ? color_textures[0] : depth_texture;
+
+	glViewport((int)(tex->width * x), (int)(tex->height * y), (int)(tex->width * width), (int)(tex->height * height));
 }
 
 

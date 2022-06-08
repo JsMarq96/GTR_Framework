@@ -1,78 +1,79 @@
 {
 	"background_color":[0.01,0.01,0.1],
-	"ambient_light":[0.06,0.06,0.1],
-	"environment":"night.hdre",
+	"ambient_light":[0.18,0.16,0.2],
 	"camera_position":[-300,90,-150],
 	"camera_target":[0,40,0],
 	"camera_fov":60,
 	"entities":[
 		{
-			"name":"house",
+			"name":"floor",
 			"type":"PREFAB",
-			"filename":"prefabs/house_test/scene.gltf",
-			"position":[300,0,200],
-			"scale":[0.4,0.4,0.4]
+			"filename":"prefabs/road/road.gltf",
+			"position":[0,0,0],
+			"scale":[10,10,10]
 		},
 		{
-			"name":"house",
+			"name":"floor2",
 			"type":"PREFAB",
-			"filename":"prefabs/house_test/scene.gltf",
-			"position":[300,0,-200],
-			"scale":[0.4,0.4,0.4]
+			"filename":"prefabs/road/road.gltf",
+			"position":[0,0,300],
+			"scale":[10,10,10]
+		},
+		{
+			"name":"floor3",
+			"type":"PREFAB",
+			"filename":"prefabs/road/road.gltf",
+			"position":[0,0,-300],
+			"scale":[10,10,10]
+		},
+		{
+			"name":"decal",
+			"type":"DECAL",
+			"albedo":"textures/graffiti.png",
+			"position":[0,0,0],
+			"scale":[2,1,1]
 		},
 		{
 			"name":"car1",
 			"type":"PREFAB",
 			"filename":"prefabs/gmc/scene.gltf",
-			"position":[-80, -3.36,-100],
+			"position":[-80,0,-100],
 			"angle":-45
 		},
 		{
 			"name":"car2",
 			"type":"PREFAB",
 			"filename":"prefabs/gmc/scene.gltf",
-			"position":[-132.39, -10.36,131.027],
-			"angle":-90
-		},
-		{
-			"name":"car3",
-			"type":"PREFAB",
-			"filename":"prefabs/gmc/scene.gltf",
-			"position":[51.716, -3.36, 277.723],
+			"position":[-50,0,233],
 			"angle":200
 		},
 		{
-			"name":"car4",
+			"name":"house",
 			"type":"PREFAB",
-			"filename":"prefabs/gmc/scene.gltf",
-			"position":[-59.30, -3.36,-316.172],
-			"angle": -130
+			"filename":"prefabs/house_test/scene.gltf",
+			"position":[300,20,200],
+			"scale":[0.4,0.4,0.4]
 		},
 		{
-			"name":"car5",
+			"name":"sign",
 			"type":"PREFAB",
-			"filename":"prefabs/gmc/scene.gltf",
-			"position":[-283.281, -3.36, -73.285],
-			"angle": -130
+			"filename":"prefabs/sign.glb",
+			"position":[118,48,-400],
+			"angle":120,
+			"scale":[60,60,60]
 		},
 		{
-			"name":"car6",
+			"name":"house",
 			"type":"PREFAB",
-			"filename":"prefabs/gmc/scene.gltf",
-			"position":[63.658, -3.36, -194.689],
-			"angle": -130
-		},
-		{
-			"name":"floor",
-			"type":"PREFAB",
-			"filename":"prefabs/floor.glb",
-			"position":[0,0,0]
+			"filename":"prefabs/house_test/scene.gltf",
+			"position":[300,20,-200],
+			"scale":[0.4,0.4,0.4]
 		},
 		{
 			"name":"trash",
 			"type":"PREFAB",
 			"filename":"prefabs/trash_can/scene.gltf",
-			"position":[145.46, 0, 121.575],
+			"position":[140,20,110],
 			"scale":[0.5,0.5,0.5]
 		},
 		{
@@ -86,23 +87,9 @@
 		{
 			"name":"spot",
 			"type":"LIGHT",
-			"position":[-0, 36, -16],
-			"angle": -45,
-			"color":[1,1,1],
-			"intensity":10,
-			"max_dist":1000,
-			"cone_angle":45,
-			"cone_exp":60,
-			"light_type":"SPOT",
-			"cast_shadows": true,
-			"shadow_bias": 0.001
-		},
-		{
-			"name":"spot2",
-			"type":"LIGHT",
-			"position":[-280.56, 86.22, 257.703],
-			"angle": -150,
-			"color":[1,1,1],
+			"position":[0,36,-16],
+			"angle": 135,
+			"color":[1,0.9,0.8],
 			"intensity":10,
 			"max_dist":1000,
 			"cone_angle":45,
@@ -134,15 +121,14 @@
 		{
 			"name":"moonlight",
 			"type":"LIGHT",
-			"position":[150,600,50],
+			"position":[150,300,50],
 			"target":[-80,0,-50],
 			"color":[0.1,0.2,0.4],
-			"intensity":8.5,
+			"intensity":1.5,
 			"area_size":1500,
 			"max_dist":1000,
 			"cast_shadows": true,
 			"light_type":"DIRECTIONAL"
 		}
-
 	]
 }

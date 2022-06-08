@@ -133,8 +133,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\camera.cpp" />
-    <ClCompile Include="..\..\src\defered.cpp" />
-    <ClCompile Include="..\..\src\defered_lightvolume.cpp" />
     <ClCompile Include="..\..\src\extra\cJSON.cpp" />
     <ClCompile Include="..\..\src\extra\coldet\box.cpp" />
     <ClCompile Include="..\..\src\extra\coldet\box_bld.cpp" />
@@ -163,11 +161,8 @@
     <ClCompile Include="..\..\src\extra\picopng.cpp" />
     <ClCompile Include="..\..\src\extra\textparser.cpp" />
     <ClCompile Include="..\..\src\fbo.cpp" />
-    <ClCompile Include="..\..\src\forward.cpp" />
     <ClCompile Include="..\..\src\framework.cpp" />
     <ClCompile Include="..\..\src\application.cpp" />
-    <ClCompile Include="..\..\src\frusturm_culling.cpp" />
-    <ClCompile Include="..\..\src\global_ilumination.cpp" />
     <ClCompile Include="..\..\src\gltf_loader.cpp" />
     <ClCompile Include="..\..\src\input.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
@@ -177,17 +172,13 @@
     <ClCompile Include="..\..\src\prefab.cpp" />
     <ClCompile Include="..\..\src\scene.cpp" />
     <ClCompile Include="..\..\src\shader.cpp" />
-    <ClCompile Include="..\..\src\shadows.cpp" />
     <ClCompile Include="..\..\src\sphericalharmonics.cpp" />
     <ClCompile Include="..\..\src\task.cpp" />
     <ClCompile Include="..\..\src\texture.cpp" />
-    <ClCompile Include="..\..\src\tonemapping.cpp" />
     <ClCompile Include="..\..\src\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\ambient_occlusion.h" />
     <ClInclude Include="..\..\src\camera.h" />
-    <ClInclude Include="..\..\src\draw_call.h" />
     <ClInclude Include="..\..\src\extra\cJSON.h" />
     <ClInclude Include="..\..\src\extra\coldet\box.h" />
     <ClInclude Include="..\..\src\extra\coldet\coldet.h" />
@@ -224,8 +215,6 @@
     <ClInclude Include="..\..\src\fbo.h" />
     <ClInclude Include="..\..\src\framework.h" />
     <ClInclude Include="..\..\src\application.h" />
-    <ClInclude Include="..\..\src\frusturm_culling.h" />
-    <ClInclude Include="..\..\src\global_ilumination.h" />
     <ClInclude Include="..\..\src\gltf_loader.h" />
     <ClInclude Include="..\..\src\includes.h" />
     <ClInclude Include="..\..\src\input.h" />
@@ -235,11 +224,9 @@
     <ClInclude Include="..\..\src\prefab.h" />
     <ClInclude Include="..\..\src\scene.h" />
     <ClInclude Include="..\..\src\shader.h" />
-    <ClInclude Include="..\..\src\shadows.h" />
     <ClInclude Include="..\..\src\sphericalharmonics.h" />
     <ClInclude Include="..\..\src\task.h" />
     <ClInclude Include="..\..\src\texture.h" />
-    <ClInclude Include="..\..\src\tonemapping.h" />
     <ClInclude Include="..\..\src\utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

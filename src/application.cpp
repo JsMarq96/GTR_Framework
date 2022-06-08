@@ -15,10 +15,6 @@
 #include <string>
 #include <cstdio>
 
-// For random numbers
-#include <stdlib.h>
-#include <ctime>
-
 Application* Application::instance = nullptr;
 
 Camera* camera = nullptr;
@@ -30,8 +26,6 @@ FBO* fbo = nullptr;
 Texture* texture = nullptr;
 
 float cam_speed = 10;
-
-std::vector<vec3> points;
 
 Application::Application(int window_width, int window_height, SDL_Window* window)
 {
@@ -50,7 +44,6 @@ Application::Application(int window_width, int window_height, SDL_Window* window
 	time = 0.0f;
 	elapsed_time = 0.0f;
 	mouse_locked = false;
-
 
 	//loads and compiles several shaders from one single file
     //change to "data/shader_atlas_osx.txt" if you are in XCODE
@@ -85,26 +78,6 @@ Application::Application(int window_width, int window_height, SDL_Window* window
 
 	//hide the cursor
 	SDL_ShowCursor(!mouse_locked); //hide or show the mouse
-
-
-	// Generate random points
-	srand(12670190);
-
-	float rand_max_f = (float)RAND_MAX;
-	for (uint32_t i = 0; i < AO_SAMPLE_SIZE; i++) {
-		float x = ((float)rand()) / rand_max_f, z = ((float)rand()) / rand_max_f;
-		x *= 2.0f, z *= 2.0f;
-		x -= 1.0f, z -= 1.0f;
-		//float y = sqrt((1.0f - (x * x) - (z * z)));
-		float y = ((float)rand()) / rand_max_f;
-		//std::cout << y << std::endl;
-
-		vec3 point = vec3(x, y, z);
-		float scale = (float)i / 64.0;
-		scale = lerp(0.1f, 1.0f, scale * scale);
-
-		points.push_back(point * scale * 10.0f);
-	}
 }
 
 //what to do when the image has to be draw
@@ -131,30 +104,12 @@ void Application::render(void)
 	//renderer->renderPrefab( model, prefab, camera );
 
 	renderer->renderScene(scene, camera);
-	/*glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glDepthFunc(GL_LESS);
-	drawGrid();
-	
-	Mesh points_mesh;
-	points_mesh.vertices = points;
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-	glDisable(GL_DEPTH_TEST);
-	Shader* shad = Shader::getDefaultShader("flat");
 
-	shad->enable();
+	//Draw the floor grid, helpful to have a reference point
+	if(render_debug)
+		drawGrid();
 
-	shad->setUniform("u_color", vec4(1.0f, 1.0f, 1.0f, 1.0f));
-
-	shad->setUniform("u_model", mat4());
-	shad->setUniform("u_viewprojection", camera->viewprojection_matrix);
-	
-	points_mesh.render(GL_POINTS);
-
-	shad->disable();
-
-
-    glDisable(GL_DEPTH_TEST);*/
+    glDisable(GL_DEPTH_TEST);
     //render anything in the gui after this
 
 	//the swap buffers is done in the main loop after this function
@@ -296,11 +251,6 @@ void Application::renderDebugGUI(void)
 	//add info to the debug panel about the camera
 	if (ImGui::TreeNode(camera, "Camera")) {
 		camera->renderInMenu();
-		ImGui::TreePop();
-	}
-
-	if (ImGui::TreeNode("Render settings")) {
-		renderer->renderInMenu();
 		ImGui::TreePop();
 	}
 
