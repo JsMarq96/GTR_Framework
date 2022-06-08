@@ -35,7 +35,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	shadowmap_renderer.render_scene_shadows(camera);
 
 	// Compute irradiance
-	irradiance_component.render_to_probe(scene->entities, 0);
+	//irradiance_component.render_to_probe(scene->entities, 0);
 
 	// Render scene
 	switch (current_pipeline) {
