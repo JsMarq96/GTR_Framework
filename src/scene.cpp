@@ -56,6 +56,9 @@ bool GTR::Scene::load(const char* filename)
 	main_camera.center = readJSONVector3(json, "camera_target", main_camera.center);
 	main_camera.fov = readJSONNumber(json, "camera_fov", main_camera.fov);
 
+	// Cleanup of prefab list
+	prefab_storage.clear();
+
 	//entities
 	cJSON* entities_json = cJSON_GetObjectItemCaseSensitive(json, "entities");
 	cJSON* entity_json;
@@ -76,6 +79,10 @@ bool GTR::Scene::load(const char* filename)
 		{
 			ent->name = cJSON_GetObjectItem(entity_json, "name")->valuestring;
 			stdlog(std::string(" + entity: ") + ent->name);
+			 
+			if (type_str == "PREFAB") {
+				prefab_storage.insert({ ent->name, (PrefabEntity*) ent});
+			}
 		}
 
 		//read transform

@@ -54,6 +54,8 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	//irradiance_component.debug_render_probe(0, 10.0, camera);
 	//final_illumination_fbo->unbind();
 
+	PrefabEntity *ent = scene->get_prefab("sign");
+
 	if (deferred_output != RESULT && current_pipeline == DEFERRED) {
 		return;
 	}

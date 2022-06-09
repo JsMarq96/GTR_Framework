@@ -128,6 +128,7 @@ namespace GTR {
 			Texture* albedo_texture = NULL, * emmisive_texture = NULL, * mr_texture = NULL, * normal_texture = NULL;
 			Texture* occlusion_texture = NULL;
 
+
 			albedo_texture = material->color_texture.texture;
 			emmisive_texture = material->emissive_texture.texture;
 			mr_texture = material->metallic_roughness_texture.texture;
@@ -143,6 +144,9 @@ namespace GTR {
 			if (emmisive_texture == NULL) {
 				enabled_textures += eTextMaterials::EMMISIVE_MAT;
 				emmisive_texture = Texture::getBlackTexture(); //a 1x1 black texture
+				shader->setUniform("u_emmisive_factor", material->emissive_factor);
+			} else {
+				shader->setUniform("u_emmisive_factor", vec3(0.0f, 0.0f, 0.0f));
 			}
 
 

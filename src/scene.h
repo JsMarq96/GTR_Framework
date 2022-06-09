@@ -6,6 +6,7 @@
 #include <string>
 #include <algorithm>
 #include <iostream>
+#include <unordered_map>
 
 //forward declaration
 class cJSON; 
@@ -73,6 +74,12 @@ namespace GTR {
 
 		std::string filename;
 		std::vector<BaseEntity*> entities;
+		std::unordered_map<std::string, PrefabEntity*> prefab_storage;
+
+		inline PrefabEntity* get_prefab(const std::string& name) const {
+			auto pref = prefab_storage.find(name);
+			return (pref == prefab_storage.end()) ? NULL : (PrefabEntity*)pref->second;
+		}
 
 		void clear();
 		void addEntity(BaseEntity* entity);
