@@ -29,6 +29,8 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	CULLING::sSceneCulling culling_result;
 
 	CULLING::frustrum_culling(scene->entities, &culling_result, camera);
+	entity_list = &scene->entities;
+	current_scene = scene;
 
 	// Render shadows
 	shadowmap_renderer.add_scene_data(&culling_result);
@@ -36,6 +38,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 
 	// Compute irradiance
 	//irradiance_component.render_to_probe(scene->entities, 0);
+	//irradiance_component.render_to_probe(scene->entities, 1);
 
 	// Render scene
 	switch (current_pipeline) {
@@ -50,9 +53,11 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	}
 
 	// Irradiance test
-	//final_illumination_fbo->bind();
+	final_illumination_fbo->bind();
 	//irradiance_component.debug_render_probe(0, 10.0, camera);
-	//final_illumination_fbo->unbind();
+	//irradiance_component.debug_render_probe(1, 10.0, camera);
+	irradiance_component.debug_render_all_probes(10.0f, camera);
+	final_illumination_fbo->unbind();
 
 	PrefabEntity *ent = scene->get_prefab("sign");
 

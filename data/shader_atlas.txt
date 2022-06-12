@@ -69,14 +69,14 @@ in vec3 v_position;
 in vec3 v_world_position;
 in vec3 v_normal;
 
-uniform vec3 coefs[9];
+uniform vec3 u_sphere_coeffs[9];
 
 out vec4 FragColor;
 #include "sphere_harmonics"
 
 void main()
 {
-	FragColor = vec4(ComputeSHIrradiance(normalize(v_normal), coefs), 1.0);
+	FragColor = vec4(ComputeSHIrradiance(normalize(v_normal), u_sphere_coeffs), 1.0);
 }
 
 \depth_functions
@@ -1459,7 +1459,7 @@ void main()
 	sFragData frag_data = getDataOfFragment(v_uv);
 
 	vec3 final_color = frag_data.albedo * (frag_data.occlusion * (u_ambient_light));
-	final_color.rgb += frag_data.emmisive + u_emmisive_factor;
+	final_color.rgb += de_gamma(texture(u_emmisive_tex, v_uv).rgb) + u_emmisive_factor;
 	vec3 light_component = vec3(0.0);
 	for(int i = 0; i < MAX_LIGHT; i++) {
 		if (i >= u_num_lights) {

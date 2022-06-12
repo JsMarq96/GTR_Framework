@@ -78,7 +78,8 @@ namespace GTR {
 		bool liniearize_shadowmap_vis = false;
 
 	public:
-
+		std::vector<BaseEntity*>* entity_list;
+		Scene* current_scene;
 		//add here your functions
 		//...
 		void init();
