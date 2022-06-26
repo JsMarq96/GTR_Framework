@@ -6,24 +6,33 @@
 #include "fbo.h"
 #include "sphericalharmonics.h"
 #include "scene.h"
+#include "texture.h"
+#include "shader.h"
 
 namespace GTR {
 
-#define MAX_PROBE_COUNT 130
+#define MAX_PROBE_COUNT 530
 
 	class Renderer;
 
 	struct sGI_Component {
 		Renderer* renderer_instance;
 		FBO* irradiance_fbo;
-		
-		bool  used_probe[MAX_PROBE_COUNT];
-		vec3  probe_position[MAX_PROBE_COUNT];
-		SphericalHarmonics harmonics[MAX_PROBE_COUNT];
-		uint32_t linear_indices[MAX_PROBE_COUNT];
 
-		vec3 origin_probe_position = vec3(-257.143f, 28.570f, -371.428f);
-		vec3 probe_area_size = vec3(566.667f, 626.6670f, 500.0f);
+		Texture* probe_texture = NULL;
+
+		int probe_size = 0;
+		vec3* probe_pos = NULL;
+		SphericalHarmonics* harmonics = NULL;
+		
+		/**vec3 origin_probe_position = vec3(58.0, 58.0, 0.0f);
+		vec3 probe_end_position = vec3();
+		vec3 probe_area_size = vec3(1.0f, 1.00f, 1.0f);
+		vec3 old_probe_size = vec3();*/
+		vec3 origin_probe_position = vec3(-350.0f, 28.0f, -400.0f);
+		vec3 probe_end_position = vec3();
+		vec3 probe_area_size = vec3(9.0f, 3.00f, 10.0f);
+		vec3 old_probe_size = vec3();
 		float probe_distnace_radius = 100.0f;
 
 		float debug_spheres = false;
@@ -43,5 +52,17 @@ namespace GTR {
 		void debug_render_probe(const uint32_t probe_id, const float radius, Camera* cam);
 
 		void debug_render_all_probes(const float radius, Camera* cam);
+
+		inline void bind_GI(Shader *shad) {
+
+			shad->setUniform("u_gi_probe_tex", probe_texture, 6);
+			shad->setUniform("u_irr_start", origin_probe_position);
+			shad->setUniform("u_irr_end", probe_end_position);
+			shad->setUniform("u_irr_size", probe_area_size);
+			shad->setUniform("u_irr_radius", probe_distnace_radius);
+			shad->setUniform("u_irr_tex_size", vec2(probe_texture->width, probe_texture->height));
+			shad->setUniform("u_irr_probe_count", probe_size);
+			//std::cout << probe_count << std::endl;
+		}
 	};
 };

@@ -15,36 +15,58 @@ void GTR::sGI_Component::init(Renderer* rend_inst) {
 	//probe_position[0] = vec3(00.0f, 020.0f, 0.0f);
 	//used_probe[0] = true;
 	//probe_position[1] = vec3(0, 50.0, 0);
-	create_probe_area(vec3(-257.143f, 28.570f, -371.428f), vec3(566.667f, 626.6670f, 500.0f), 100.0f);
+	create_probe_area(origin_probe_position, probe_area_size, probe_distnace_radius);
 }
 
 void GTR::sGI_Component::create_probe_area(const vec3 postion, const vec3 size, const float probe_radius_size) {
-	int probe_id = 0;
+	
+	bool has_size_changed = old_probe_size.x != size.x ||
+							old_probe_size.y != size.y ||
+							old_probe_size.z != size.z;
+	if (has_size_changed) {
+		if (probe_pos != NULL) {
+			free(probe_pos);
+			free(harmonics);
+		}
 
-	for (float z = 0.0f; z < size.z; z += probe_radius_size) {
-		for (float x = 0.0f; x < size.x; x += probe_radius_size) {
-			for (float y = 0.0f; y < size.y; y += probe_radius_size) {
+		probe_pos = (vec3*)malloc(sizeof(vec3) * size.x * size.y * size.z);
+		probe_size = size.x * size.y * size.z;
+		harmonics = (SphericalHarmonics*)malloc(sizeof(SphericalHarmonics) * size.x * size.y * size.z);
+	}
 
+	for (float y = 0.0f; y < size.y; y++ ) {
+		for (float z = 0.0f; z < size.z; z++) {
+			for (float x = 0.0f; x < size.x; x++) {
+				//
+
+					// Store the current ir probe
+				int probe_index = x + y * size.x + z * size.x * size.y;
 				// Store the current ir probe
-				used_probe[probe_id] = true;
-				probe_position[probe_id++] = vec3(x, z, y) + postion;
-
-				if (probe_id > MAX_PROBE_COUNT)
-					return;
+				probe_pos[probe_index] = postion + vec3(x, y, z) * probe_radius_size;
 			}
 		}
 	}
 
 	origin_probe_position = postion;
+	old_probe_size = size;
+
+	if (has_size_changed) {
+		if (probe_texture != NULL) {
+			delete probe_texture;
+		}
+		probe_texture = new Texture(9, probe_size, GL_RGB, GL_FLOAT);
+	}
 }
 
 void GTR::sGI_Component::compute_all_probes(const std::vector<BaseEntity*> &entity_list) {
-	for (int i = 0; i < MAX_PROBE_COUNT; i++) {
-		if (!used_probe[i])
-			continue;
-
+	for (int i = 0; i < probe_size; i++) {
 		render_to_probe(entity_list, i);
 	}
+	probe_texture->bind();
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	probe_texture->unbind();
+	probe_texture->upload(GL_RGB, GL_FLOAT, false, (uint8_t*) harmonics);
 }
 
 
@@ -58,7 +80,7 @@ void GTR::sGI_Component::render_to_probe(const std::vector<BaseEntity*> entity_l
 
 	for(int i = 0; i < 6; i++) {
 		// Set camera looking at the direction
-		vec3 eye = probe_position[probe_id];
+		vec3 eye = probe_pos[probe_id];
 		vec3 front = cubemapFaceNormals[i][2];
 		vec3 center = eye + front;
 		vec3 up = cubemapFaceNormals[i][1];
@@ -81,12 +103,12 @@ void GTR::sGI_Component::render_to_probe(const std::vector<BaseEntity*> entity_l
 
 		// First, render the opaque object
 		for (uint16_t i = 0; i < culling_result._opaque_objects.size(); i++) {
-			renderer_instance->forwardSingleRenderDrawCall(culling_result._opaque_objects[i], &render_cam, renderer_instance->current_scene->ambient_light);
+			renderer_instance->forwardSingleRenderDrawCall(culling_result._opaque_objects[i], &render_cam, vec3(0.0f, 0.0f, 0.0f), false);
 		}
 
 		// then, render the translucnet, and masked objects
 		for (uint16_t i = 0; i < culling_result._translucent_objects.size(); i++) {
-			renderer_instance->forwardSingleRenderDrawCall(culling_result._translucent_objects[i], &render_cam, renderer_instance->current_scene->ambient_light);
+			renderer_instance->forwardSingleRenderDrawCall(culling_result._translucent_objects[i], &render_cam, vec3(0.0f, 0.0f, 0.0f), false);
 		}
 
 		culling_result.clear();
@@ -107,7 +129,7 @@ void GTR::sGI_Component::render_imgui() {
 	vec3 pos = origin_probe_position;
 
 	bool has_updated = ImGui::SliderFloat3("Probe area position",(float*) &origin_probe_position, -3000.0f, 3000.0f);
-	bool has_updated2 = ImGui::SliderFloat3("Probe area size", (float*) &probe_area_size, 100.0f, 800.0f);
+	bool has_updated2 = ImGui::SliderFloat3("Probe area size", (float*) &probe_area_size, 1.0f, 100.0f);
 	bool has_updated3 = ImGui::SliderFloat("Probe distance", &probe_distnace_radius, 100.0f, 1000.0f);
 	//has_updated = has_updated && has_updated2;
 	//has_updated = has_updated && has_updated3;
@@ -126,7 +148,7 @@ void GTR::sGI_Component::debug_render_probe(const uint32_t probe_id, const float
 	Shader* shader = Shader::Get("probe");
 
 	mat4 model;
-	model.setTranslation(probe_position[probe_id].x, probe_position[probe_id].y, probe_position[probe_id].z);
+	model.setTranslation(probe_pos[probe_id].x, probe_pos[probe_id].y, probe_pos[probe_id].z);
 	model.scale(radius, radius, radius);
 
 	shader->enable();
@@ -142,10 +164,7 @@ void GTR::sGI_Component::debug_render_probe(const uint32_t probe_id, const float
 }
 
 void GTR::sGI_Component::debug_render_all_probes(const float radius, Camera* cam) {
-	for (int i = 0; i < MAX_PROBE_COUNT; i++) {
-		if (!used_probe[i])
-			continue;
-
+	for (int i = 0; i < probe_size; i++) {
 		debug_render_probe(i, radius, cam);
 	}
 }

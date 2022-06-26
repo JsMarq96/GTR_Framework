@@ -43,7 +43,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	// Render scene
 	switch (current_pipeline) {
 	case FORWARD:
-		forwardRenderScene(scene, camera, final_illumination_fbo, &culling_result);
+		forwardRenderScene(scene, camera, final_illumination_fbo, &culling_result, use_irradiance);
 		break;
 	case DEFERRED:
 		deferredRenderScene(scene, camera, final_illumination_fbo, &culling_result);
