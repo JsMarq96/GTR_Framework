@@ -1408,7 +1408,7 @@ vec3 compute_irr_with_grid_coord(const in vec3 grid_pos, const in vec3 normal) {
 		coeffs[i] = texture(u_gi_probe_tex, uv).xyz;
 	}
 
-	return ComputeSHIrradiance(normalize(normal), coeffs) * 10.0;
+	return ComputeSHIrradiance(normalize(normal), coeffs) * 5.0;
 }
 
 vec3 compute_basic_irradiance(const in vec3 world_pos, const in vec3 normal) {
@@ -1426,9 +1426,58 @@ vec3 compute_irradiance(const in vec3 world_pos, const in vec3 normal) {
 	vec3 irr_local_pos = clamp(world_pos - u_irr_start + (normal * 0.5),  vec3(0.0), u_irr_size * u_irr_radius);
 
 	// Convert to grid position
-	vec3 irr_grid_pos = round(irr_local_pos / u_irr_radius);
+	vec3 grid_coords = irr_local_pos / u_irr_radius;
+	vec3 irr_grid_pos = floor(grid_coords);
+	vec3 int_vals = grid_coords - irr_grid_pos;
+	
+	/*
+		Front View:
+			Up (y+1)
+			┌────┐
+		Letf│    │Right (x+1)
+			└────┘
+			Down
 
-	return compute_irr_with_grid_coord(irr_grid_pos, normal);
+		Side View:
+			Up
+			┌────┐
+		Back│    │ Front (z+1)
+			└────┘
+			Down
+	*/
+
+	// Indices
+	vec3 cornerDLB = irr_grid_pos; // 0, 0, 0
+	vec3 cornerDRB = irr_grid_pos + vec3(1.0, 0.0, 0.0);
+	vec3 cornerURB = irr_grid_pos + vec3(1.0, 1.0, 0.0);
+	vec3 cornerURF = irr_grid_pos + vec3(1.0, 1.0, 1.0);
+	vec3 cornerULF = irr_grid_pos + vec3(0.0, 1.0, 1.0);
+	vec3 cornerDRF = irr_grid_pos + vec3(1.0, 0.0, 1.0);
+	vec3 cornerDLF = irr_grid_pos + vec3(0.0, 0.0, 1.0);
+	vec3 cornerULB = irr_grid_pos + vec3(0.0, 1.0, 0.0);
+
+	// Irradiances
+	vec3 irrDLB = compute_irr_with_grid_coord(cornerDLB, normal);
+	vec3 irrDRB = compute_irr_with_grid_coord(cornerDRB, normal);
+	vec3 irrURB = compute_irr_with_grid_coord(cornerURB, normal);
+	vec3 irrURF = compute_irr_with_grid_coord(cornerURF, normal);
+	vec3 irrULF = compute_irr_with_grid_coord(cornerULF, normal);
+	vec3 irrDRF = compute_irr_with_grid_coord(cornerDRF, normal);
+	vec3 irrDLF = compute_irr_with_grid_coord(cornerDLF, normal);
+	vec3 irrULB = compute_irr_with_grid_coord(cornerULB, normal);
+
+	// Interpolation
+	vec3 irrUB = mix(irrULB, irrURB, int_vals.x);
+	vec3 irrUF = mix(irrULF, irrULB, int_vals.x);
+	vec3 irrDB = mix(irrDLB, irrDRB, int_vals.x);
+	vec3 irrDF = mix(irrDLF, irrDRF, int_vals.x);
+
+	vec3 irrU = mix(irrUB, irrUF, 1.0 - int_vals.z);
+	vec3 irrD = mix(irrDB, irrDF, int_vals.z);
+
+	//return int_vals;
+
+	return mix(irrU, irrD, 1.0 - int_vals.y);
 }
 
 \forward_singlepass_pbr.fs
