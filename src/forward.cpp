@@ -11,12 +11,12 @@ void GTR::Renderer::forwardRenderScene(const Scene* scene, Camera* camera, FBO* 
 	if (use_single_pass) {
 		// First, render the opaque object
 		for (uint16_t i = 0; i < scene_data->_opaque_objects.size(); i++) {
-			forwardSingleRenderDrawCall(scene_data->_opaque_objects[i], camera, scene->ambient_light, use_irradiance);
+			forwardSingleRenderDrawCall(scene_data->_opaque_objects[i], camera, scene->ambient_light, use_irradiance, false);
 		}
 
 		// then, render the translucnet, and masked objects
 		for (uint16_t i = 0; i < scene_data->_translucent_objects.size(); i++) {
-			forwardSingleRenderDrawCall(scene_data->_translucent_objects[i], camera, scene->ambient_light, use_irradiance);
+			forwardSingleRenderDrawCall(scene_data->_translucent_objects[i], camera, scene->ambient_light, use_irradiance, false);
 		}
 	}
 	else {
@@ -33,7 +33,7 @@ void GTR::Renderer::forwardRenderScene(const Scene* scene, Camera* camera, FBO* 
 	resulting_fbo->unbind();
 }
 
-inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Camera *cam, const vec3 ambient_ligh, const bool use_GI) {
+inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Camera *cam, const vec3 ambient_ligh, const bool use_GI, const bool use_skymap_reflections) {
 	//in case there is nothing to do
 	if (!draw_call.mesh || !draw_call.mesh->getNumVertices() || !draw_call.material)
 		return;
@@ -118,6 +118,12 @@ inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_cal
 		shader->setUniform("u_use_irradiance", 0);
 	}
 	
+	if (!use_skymap_reflections) {
+		reflections_component.bind_reflections(*camera, shader);
+	}
+	else {
+		// Bind skymap
+	}
 
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", draw_call.material->alpha_mode == GTR::eAlphaMode::MASK ? draw_call.material->alpha_cutoff : 0);

@@ -5,9 +5,22 @@
 #include "shadows.h"
 #include "ambient_occlusion.h"
 #include "global_ilumination.h"
+#include "reflections.h"
 #include "tonemapping.h"
 #include "draw_call.h"
 #include "frusturm_culling.h"
+#include "camera.h"
+#include "shader.h"
+#include "mesh.h"
+#include "texture.h"
+#include "prefab.h"
+#include "material.h"
+#include "utils.h"
+#include "scene.h"
+#include "extra/hdre.h"
+#include "frusturm_culling.h"
+#include "reflections.h"
+#include <functional>
 #include <algorithm>
 
 //forward declarations
@@ -63,6 +76,7 @@ namespace GTR {
 		SSAO_Component ao_component;
 		Tonemapping_Component tonemapping_component;
 		sGI_Component irradiance_component;
+		sReflections_Component reflections_component;
 
 		// CONFIG FLAGS =====
 		eRenderPipe current_pipeline = FORWARD;
@@ -88,7 +102,7 @@ namespace GTR {
 		// Scene
 		void compute_visible_objects(Camera* camera, std::vector<sDrawCall>* opaque_calls, std::vector<sDrawCall>* translucent_calls);
 
-		void forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Camera* cam, const vec3 ambient_ligh, const bool use_irradiance);
+		void forwardSingleRenderDrawCall(const sDrawCall& draw_call, const Camera* cam, const vec3 ambient_ligh, const bool use_irradiance, const bool use_skymap_reflections);
 		void forwardMultiRenderDrawCall(const sDrawCall& draw_call, const Camera* cam, const Scene* scene);
 		void forwardOpacyRenderDrawCall(const sDrawCall& draw_call, const Scene* scene);
 		void renderDeferredLightVolumes(CULLING::sSceneCulling* scene_data);
@@ -208,7 +222,9 @@ namespace GTR {
 			}
 			tonemapping_component.imgui_config();
 			irradiance_component.render_imgui();
+			reflections_component.debug_imgui();
 			ImGui::Checkbox("Use GI", &use_irradiance);
+			ImGui::Checkbox("Show render probes", &irradiance_component.debug_show_spheres);
 #endif
 		}
 	};

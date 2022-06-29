@@ -1,18 +1,5 @@
 #include "renderer.h"
 
-#include "fbo.h"
-#include "camera.h"
-#include "shader.h"
-#include "mesh.h"
-#include "texture.h"
-#include "prefab.h"
-#include "material.h"
-#include "utils.h"
-#include "scene.h"
-#include "extra/hdre.h"
-#include "frusturm_culling.h"
-#include <functional>
-
 
 using namespace GTR;
 
@@ -36,9 +23,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	shadowmap_renderer.add_scene_data(&culling_result);
 	shadowmap_renderer.render_scene_shadows(camera);
 
-	// Compute irradiance
-	//irradiance_component.render_to_probe(scene->entities, 0);
-	//irradiance_component.render_to_probe(scene->entities, 1);
+	reflections_component.capture_all_probes(*entity_list);
 
 	// Render scene
 	switch (current_pipeline) {
@@ -54,9 +39,11 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 
 	// Irradiance test
 	final_illumination_fbo->bind();
-	//irradiance_component.debug_render_probe(0, 10.0, camera);
-	//irradiance_component.debug_render_probe(1, 10.0, camera);
+
 	irradiance_component.debug_render_all_probes(10.0f, camera);
+
+	reflections_component.render_probes(*camera);
+
 	final_illumination_fbo->unbind();
 
 	PrefabEntity *ent = scene->get_prefab("sign");
@@ -141,10 +128,7 @@ void Renderer::renderMeshWithMaterial(const Matrix44 model, Mesh* mesh, GTR::Mat
 	Texture* texture = NULL;
 
 	texture = material->color_texture.texture;
-	//texture = material->emissive_texture;
-	//texture = material->metallic_roughness_texture;
-	//texture = material->normal_texture;
-	//texture = material->occlusion_texture;
+
 	if (texture == NULL)
 		texture = Texture::getWhiteTexture(); //a 1x1 white texture
 
@@ -235,6 +219,7 @@ void Renderer::init() {
 	ao_component.init();
 	tonemapping_component.init();
 	irradiance_component.init(this);
+	reflections_component.init(this);
 
 	final_illumination_fbo = new FBO();
 

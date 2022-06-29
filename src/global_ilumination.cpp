@@ -1,4 +1,6 @@
 #include "global_ilumination.h"
+
+#include "includes.h"
 #include "renderer.h"
 #include "frusturm_culling.h"
 
@@ -71,7 +73,7 @@ void GTR::sGI_Component::compute_all_probes(const std::vector<BaseEntity*> &enti
 
 
 // Generate probe coefficients
-void GTR::sGI_Component::render_to_probe(const std::vector<BaseEntity*> entity_list, const uint32_t probe_id) {
+void GTR::sGI_Component::render_to_probe(const std::vector<BaseEntity*> &entity_list, const uint32_t probe_id) {
 	FloatImage cube_views[6];
 
 	Camera render_cam;
@@ -164,6 +166,8 @@ void GTR::sGI_Component::debug_render_probe(const uint32_t probe_id, const float
 }
 
 void GTR::sGI_Component::debug_render_all_probes(const float radius, Camera* cam) {
+	if (!debug_show_spheres)
+		return;
 	for (int i = 0; i < probe_size; i++) {
 		debug_render_probe(i, radius, cam);
 	}

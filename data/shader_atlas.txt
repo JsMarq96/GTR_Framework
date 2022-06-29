@@ -6,6 +6,7 @@ texture basic.vs texture.fs
 depth quad.vs depth.fs
 multi basic.vs multi.fs
 probe basic.vs probe.fs
+ref_probe basic.vs ref_probe.fs
 // Phong
 multi_phong basic.vs multi_phong.fs
 single_phong basic.vs single_phong.fs
@@ -1564,9 +1565,6 @@ void main()
 		ambient = max(compute_irradiance(v_world_position, frag_data.normal), vec3(0.0));
 	}
 
-	//FragColor = vec4(ambient.rgb, 1.0); return;
-	//FragColor = texture(u_gi_probe_tex, v_uv); return;
-
 	vec3 final_color = frag_data.albedo * (frag_data.occlusion * ambient);
 	final_color.rgb += de_gamma(texture(u_emmisive_tex, v_uv).rgb) + u_emmisive_factor;
 	vec3 light_component = vec3(0.0);
@@ -1608,4 +1606,24 @@ void main()
 	}
 
 	FragColor = vec4(final_color, color.a);
+}
+
+\ref_probe.fs
+
+#version 330 core
+
+in vec3 v_position;
+in vec3 v_world_position;
+in vec3 v_normal;
+
+uniform vec3 u_camera_position;
+uniform samplerCube u_skybox_texture;
+
+out vec4 FragColor;
+
+void main()
+{
+	vec3 V = normalize(v_world_position - u_camera_position);
+	vec3 R = reflect(V, normalize(v_normal));
+	FragColor = vec4(texture(u_skybox_texture, R).rgb, 1.0);
 }

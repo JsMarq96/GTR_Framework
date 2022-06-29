@@ -1,13 +1,12 @@
 #pragma once
 
-#include "includes.h"
 #include "utils.h"
 #include "camera.h"
-#include "fbo.h"
 #include "sphericalharmonics.h"
-#include "scene.h"
+#include "fbo.h"
 #include "texture.h"
 #include "shader.h"
+#include "scene.h"
 
 namespace GTR {
 
@@ -25,19 +24,13 @@ namespace GTR {
 		vec3* probe_pos = NULL;
 		SphericalHarmonics* harmonics = NULL;
 		
-		/**vec3 origin_probe_position = vec3(58.0, 58.0, 0.0f);
-		vec3 probe_end_position = vec3();
-		vec3 probe_area_size = vec3(1.0f, 1.00f, 1.0f);
-		vec3 old_probe_size = vec3();*/
 		vec3 origin_probe_position = vec3(-350.0f, 28.0f, -400.0f);
 		vec3 probe_end_position = vec3();
 		vec3 probe_area_size = vec3(9.0f, 3.00f, 10.0f);
 		vec3 old_probe_size = vec3();
 		float probe_distnace_radius = 100.0f;
 
-		float debug_spheres = false;
-
-		// Debug ===
+		bool debug_show_spheres = false;
 
 		void init(Renderer *rend_inst);
 
@@ -45,7 +38,7 @@ namespace GTR {
 
 		void compute_all_probes(const std::vector<BaseEntity*> &entity_list);
 
-		void render_to_probe(const std::vector<BaseEntity*> entity_list, const uint32_t probe_id);
+		void render_to_probe(const std::vector<BaseEntity*> &entity_list, const uint32_t probe_id);
 
 		void render_imgui();
 
