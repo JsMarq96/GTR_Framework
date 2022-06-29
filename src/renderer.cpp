@@ -49,7 +49,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	shadowmap_renderer.add_scene_data(&culling_result);
 	shadowmap_renderer.render_scene_shadows(camera);
 
-	reflections_component.capture_all_probes(*entity_list);
+	//reflections_component.capture_all_probes(*entity_list);
 
 	// Render scene
 	switch (current_pipeline) {
