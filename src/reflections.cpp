@@ -64,12 +64,12 @@ void GTR::sReflections_Component::capture_probe(const std::vector<BaseEntity*>& 
 
 		// First, render the opaque object
 		for (uint16_t i = 0; i < culling_result._opaque_objects.size(); i++) {
-			renderer_instance->forwardSingleRenderDrawCall(culling_result._opaque_objects[i], &render_cam, renderer_instance->current_scene->ambient_light, false);
+			renderer_instance->forwardSingleRenderDrawCall(culling_result._opaque_objects[i], &render_cam, renderer_instance->current_scene->ambient_light, false, false);
 		}
 
 		// then, render the translucnet, and masked objects
 		for (uint16_t i = 0; i < culling_result._translucent_objects.size(); i++) {
-			renderer_instance->forwardSingleRenderDrawCall(culling_result._translucent_objects[i], &render_cam, renderer_instance->current_scene->ambient_light, false);
+			renderer_instance->forwardSingleRenderDrawCall(culling_result._translucent_objects[i], &render_cam, renderer_instance->current_scene->ambient_light, false, false);
 		}
 
 		culling_result.clear();
@@ -138,6 +138,7 @@ void GTR::sReflections_Component::debug_imgui() {
 			capture_all_probes(*renderer_instance->entity_list);
 		}
 		ImGui::Checkbox("Show ref probes ", &debug_render);
+		ImGui::Checkbox("Enable reflections ", &enable_reflections);
 		ImGui::TreePop();
 	}
 }

@@ -32,6 +32,8 @@ void GTR::Renderer::renderDeferredLightVolumes(CULLING::sSceneCulling *scene_dat
 	shader->setUniform("u_viewprojection", camera->viewprojection_matrix);
 	shader->setUniform("u_camera_position", camera->eye);
 
+	shader->setUniform("u_skybox_texture", skybox_texture, 9);
+
 	// Set the shadowmap
 	shadowmap_renderer.bind_shadows(shader);
 

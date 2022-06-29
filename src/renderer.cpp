@@ -3,6 +3,32 @@
 
 using namespace GTR;
 
+void Renderer::render_skybox(Camera *camera) {
+	// Render skybox
+	Mesh* sphere = Mesh::Get("data/meshes/sphere.obj");
+	Shader* shader = Shader::Get("skybox");
+	shader->enable();
+
+	glDisable(GL_CULL_FACE);
+	glDisable(GL_DEPTH_TEST);
+
+	mat4 model;
+	model.translate(camera->eye.x, camera->eye.y, camera->eye.z);
+	model.scale(10.0f, 10.0f, 10.0f);
+
+	shader->setUniform("u_model", model);
+	shader->setUniform("u_viewprojection", camera->viewprojection_matrix);
+	shader->setUniform("u_camera_position", camera->eye);
+	shader->setUniform("u_texture", skybox_texture, 5);
+
+	sphere->render(GL_TRIANGLES);
+
+	shader->disable();
+
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
+}
+
 void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 {
 	//set the clear color (the background color)
@@ -231,4 +257,6 @@ void Renderer::init() {
 
 	// No need to add any preparations for forward renderer
 	_init_deferred_renderer();
+
+	skybox_texture = CubemapFromHDRE("data/night.hdre");
 }

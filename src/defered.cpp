@@ -215,6 +215,7 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene, CULLING::sSceneCulli
 	shader_pass->setUniform1Array("u_light_intensities", light_intensities, light_count);
 	shader_pass->setUniform3Array("u_light_direction", (float*)light_direction, light_count);
 	shader_pass->setUniform("u_num_lights", light_count);
+	shader_pass->setUniform("u_skybox_texture", skybox_texture, 9);
 
 	shadowmap_renderer.bind_shadows(shader_pass);
 

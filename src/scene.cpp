@@ -3,6 +3,7 @@
 
 #include "prefab.h"
 #include "extra/cJSON.h"
+#include "extra/hdre.h"
 
 GTR::Scene* GTR::Scene::instance = NULL;
 
@@ -55,6 +56,7 @@ bool GTR::Scene::load(const char* filename)
 	main_camera.eye = readJSONVector3(json, "camera_position", main_camera.eye);
 	main_camera.center = readJSONVector3(json, "camera_target", main_camera.center);
 	main_camera.fov = readJSONNumber(json, "camera_fov", main_camera.fov);
+	std::string skybox_dir = readJSONString(json, "skybox", "");
 
 	// Cleanup of prefab list
 	prefab_storage.clear();

@@ -1,4 +1,5 @@
 {
+	"skybox": "night.hdre",
 	"background_color":[0.01,0.01,0.1],
 	"ambient_light":[0.01,0.01,0.01],
 	"camera_position":[-300,90,-150],

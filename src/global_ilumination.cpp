@@ -103,14 +103,16 @@ void GTR::sGI_Component::render_to_probe(const std::vector<BaseEntity*> &entity_
 		//glEnable(GL_DEPTH_TEST);
 		//glDepthFunc(GL_ALWAYS);
 
+		renderer_instance->render_skybox(&render_cam);
+
 		// First, render the opaque object
 		for (uint16_t i = 0; i < culling_result._opaque_objects.size(); i++) {
-			renderer_instance->forwardSingleRenderDrawCall(culling_result._opaque_objects[i], &render_cam, vec3(0.0f, 0.0f, 0.0f), false);
+			renderer_instance->forwardSingleRenderDrawCall(culling_result._opaque_objects[i], &render_cam, vec3(0.0f, 0.0f, 0.0f), false, false);
 		}
 
 		// then, render the translucnet, and masked objects
 		for (uint16_t i = 0; i < culling_result._translucent_objects.size(); i++) {
-			renderer_instance->forwardSingleRenderDrawCall(culling_result._translucent_objects[i], &render_cam, vec3(0.0f, 0.0f, 0.0f), false);
+			renderer_instance->forwardSingleRenderDrawCall(culling_result._translucent_objects[i], &render_cam, vec3(0.0f, 0.0f, 0.0f), false, false);
 		}
 
 		culling_result.clear();

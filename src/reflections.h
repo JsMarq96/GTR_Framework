@@ -21,6 +21,7 @@ namespace GTR {
 		bool     is_in_use[MAX_REF_PROBE_COUNT];
 
 		bool debug_render = false;
+		bool enable_reflections = false;
 
 
 		void init(Renderer* rend_inst);

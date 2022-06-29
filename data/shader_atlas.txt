@@ -1,6 +1,7 @@
 //example of some shaders compiled
 // Basic /  Base shaders
 flat basic.vs flat.fs
+skybox basic.vs skybox.fs
 shadow_flat basic.vs shadow_flat.fs
 texture basic.vs texture.fs
 depth quad.vs depth.fs
@@ -697,9 +698,9 @@ float distribution_GGX(const in sFragData data, const in sFragVects vectors) {
 	return alpha_squared / ((PI * f * f));
 }
 
-vec3 fresnel_schlick(const in float angle, const in vec3 f0) {
+vec3 fresnel_schlick(const in float angle, const in vec3 f0, const in float roughness) {
 	float f = pow(1.0 - angle, 5.0);
-	return f0 + (vec3(1.0) - f0) * f;
+	return f0 + (vec3(1.0 - roughness) - f0) * f;
 }
 
 float GGX(const in float n_dot_v, const in float k) {
@@ -714,7 +715,7 @@ float geometry_Smith(const in sFragData data, const in sFragVects vectors) {
 vec3 specular_BRDF(const in sFragData data, const in sFragVects vectors) {
 	float D = distribution_GGX(data, vectors);
 
-	vec3 F = fresnel_schlick(vectors.n_dot_h, data.f0);
+	vec3 F = fresnel_schlick(vectors.n_dot_h, data.f0, data.roughness);
 
 	float G = geometry_Smith(data, vectors);
 
@@ -733,7 +734,7 @@ vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
 	vec3 specular = specular_BRDF(data, vects);
 	vec3 diffuse = data.occlusion * diffuse_color / PI; // Lambertian BRDF cuz cheap
 
-	return (specular + diffuse) * vects.attenuation;
+	return ((specular + diffuse) * vects.attenuation);
 }
 
 \hdr_tonemapping
@@ -769,6 +770,7 @@ struct sFragData {
 };
 
 struct sFragVects {
+	vec3 r;
 	vec3 l;
 	float n_dot_v;
 	float n_dot_h;
@@ -792,10 +794,13 @@ sFragVects getVectsOfFragment(const in sFragData mat, const in vec3 light_pos, c
 		vects.attenuation = max(vects.attenuation / light_max_dist, 0.0); 
 		vects.attenuation *= vects.attenuation;
 	}
-	
+
+
 	vec3 D = normalize(light_direction);
 	vec3 v = normalize(u_camera_position - mat.world_pos);
 	vec3 half_v = normalize(v + vects.l);
+
+	vects.r = reflect(v, normalize(mat.normal));
 
 	vects.l_dot_d = clamp(dot(D, vects.l), 0.0001, 1.0);
 	vects.l_dot_h = clamp(dot(half_v, vects.l), 0.0001, 1.0);
@@ -835,6 +840,8 @@ sFragData getDataOfFragment(const in vec2 uv) {
 	mat.f0 = mix(vec3(0.001), mat.albedo, mat.metalness);
 	mat.alpha = mat.roughness * mat.roughness;
 
+	mat.uv = uv;
+
 	return mat;
 }
 
@@ -857,6 +864,8 @@ sFragVects getVectsOfFragment(const in sFragData mat, const in vec3 light_pos, c
 	vec3 D = normalize(light_direction);
 	vec3 v = normalize(u_camera_position - mat.world_pos);
 	vec3 half_v = normalize(v + vects.l);
+
+	vects.r = reflect(v, normalize(mat.normal));
 
 	vects.l_dot_d = clamp(dot(D, vects.l), 0.0001, 1.0);
 	vects.l_dot_h = clamp(dot(half_v, vects.l), 0.0001, 1.0);
@@ -892,6 +901,8 @@ sFragData getDataOfFragment(const in vec2 uv) {
 
 	mat.f0 = mix(vec3(0.001), mat.albedo, mat.metalness);
 	mat.alpha = mat.roughness * mat.roughness;
+
+	mat.uv = uv;
 
 	return mat;
 }
@@ -929,6 +940,7 @@ uniform sampler2D u_met_rough_tex;
 uniform sampler2D u_emmisive_tex;
 uniform sampler2D u_depth_tex;
 uniform sampler2D u_ambient_occlusion_tex;
+uniform samplerCube u_skybox_texture;
 
 in vec2 v_uv;
 in mat4 v_viewprojection_inv;
@@ -1003,6 +1015,8 @@ uniform float u_light_intensities;
 uniform vec3 u_light_direction;
 uniform int u_light_type;
 uniform vec2 u_screen_res;
+
+uniform samplerCube u_skybox_texture;
 
 // Spot light uniforms
 uniform float u_light_cone_angle;
@@ -1507,6 +1521,7 @@ uniform sampler2D u_occlusion_tex;
 uniform sampler2D u_ambient_occlusion_tex;
 uniform sampler2D u_gi_probe_tex;
 uniform vec3 u_emmisive_factor;
+uniform samplerCube u_skybox_texture;
 
 // GI / Irradiance data
 uniform vec3 u_irr_start;
@@ -1605,7 +1620,16 @@ void main()
 		final_color += light_component * get_pbr_color(frag_data, light_vects);
 	}
 
-	FragColor = vec4(final_color, color.a);
+	// IBL
+	vec3 v = normalize(u_camera_position - v_world_position);
+	vec3 r = reflect(v, normalize(frag_data.normal));
+	float n_dot_v = clamp(dot(frag_data.normal, v), 0.0001, 1.0);
+	vec3 fresnel_IBL = fresnel_schlick(n_dot_v, frag_data.f0, frag_data.roughness);
+	vec3 specular_sample = de_gamma(textureLod(u_skybox_texture, r, frag_data.roughness * 7.0).rgb);
+
+	vec3 IBL = specular_sample * (1.0 - frag_data.metalness) * fresnel_IBL;
+
+	FragColor = vec4(final_color + IBL, color.a);
 }
 
 \ref_probe.fs
@@ -1626,4 +1650,25 @@ void main()
 	vec3 V = normalize(v_world_position - u_camera_position);
 	vec3 R = reflect(V, normalize(v_normal));
 	FragColor = vec4(texture(u_skybox_texture, R).rgb, 1.0);
+}
+
+\skybox.fs
+#version 330 core
+
+in vec3 v_position;
+in vec3 v_world_position;
+in vec3 v_normal;
+
+#include "hdr_tonemapping"
+
+uniform vec3 u_camera_position;
+uniform samplerCube u_texture;
+
+out vec4 FragColor;
+
+void main()
+{
+	vec3 V = normalize(v_world_position - u_camera_position);
+	FragColor = vec4(de_gamma(texture(u_texture, V).rgb), 1.0);
+	//FragColor = vec4(1.0);
 }

@@ -69,6 +69,8 @@ namespace GTR {
 		FBO* deferred_gbuffer = NULL;
 		FBO* final_illumination_fbo = NULL;
 
+		Texture* skybox_texture = NULL;
+
 		Camera* camera;
 
 		// CONPONENTS =====
@@ -107,6 +109,8 @@ namespace GTR {
 		void forwardOpacyRenderDrawCall(const sDrawCall& draw_call, const Scene* scene);
 		void renderDeferredLightVolumes(CULLING::sSceneCulling* scene_data);
 		void tonemappingPass();
+
+		void render_skybox(Camera* camera);
 
 		void forwardRenderScene(const Scene* scene, Camera* camera, FBO* resulting_fbo, CULLING::sSceneCulling* scene_data, const bool use_irradiance);
 		void deferredRenderScene(const Scene* scene, Camera* camera, FBO* resulting_fbo, CULLING::sSceneCulling* scene_data);
