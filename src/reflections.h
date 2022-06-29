@@ -32,7 +32,7 @@ namespace GTR {
 		void capture_probe(const std::vector<BaseEntity*>& entity_list, const int probe_id);
 		void capture_all_probes(const std::vector<BaseEntity*>& entity_list);
 
-		inline bool bind_reflections(const Camera& cam, 
+		inline bool bind_reflections(const vec3 pos, 
 									 Shader *shad) const {
 			int lowest_index = 0;
 			float min_dist = FLT_MAX;
@@ -42,7 +42,7 @@ namespace GTR {
 					continue;
 				}
 
-				float dist = (cam.eye - probe_position[i]).length();
+				float dist = (pos - probe_position[i]).length();
 
 				if (dist < min_dist) {
 					lowest_index = i;

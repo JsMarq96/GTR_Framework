@@ -121,12 +121,10 @@ inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_cal
 	}
 	
 	if (reflections) {
-		reflections_component.bind_reflections(*camera, shader);
+		reflections_component.bind_reflections(draw_call.aabb.center, shader);
+	} else {
+		shader->setUniform("u_skybox_texture", skybox_texture, 9);
 	}
-	else {
-		
-	}
-	shader->setUniform("u_skybox_texture", skybox_texture, 9);
 
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", draw_call.material->alpha_mode == GTR::eAlphaMode::MASK ? draw_call.material->alpha_cutoff : 0);

@@ -62,6 +62,8 @@ void GTR::sReflections_Component::capture_probe(const std::vector<BaseEntity*>& 
 		glClearColor(0.0, 0.0, 0.0, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		renderer_instance->render_skybox(&render_cam);
+
 		// First, render the opaque object
 		for (uint16_t i = 0; i < culling_result._opaque_objects.size(); i++) {
 			renderer_instance->forwardSingleRenderDrawCall(culling_result._opaque_objects[i], &render_cam, renderer_instance->current_scene->ambient_light, false, false);
@@ -125,11 +127,13 @@ void GTR::sReflections_Component::render_probes(Camera& cam) {
 
 void GTR::sReflections_Component::debug_imgui() {
 	if (ImGui::TreeNode("Reflection probes")) {
+		ImGui::Text("Probe positions");
 		for (int i = 0; i < MAX_REF_PROBE_COUNT; i++) {
 			if (!is_in_use[i])
 				continue;
-			ImGui::SliderFloat3("Probe pos: ", (float*) &probe_position[i], -1000.0f, 1000.0f);
+			ImGui::SliderFloat3((char*) &i, (float*)&probe_position[i], -1000.0f, 1000.0f);
 		}
+		ImGui::Separator();
 
 		if (ImGui::Button("Add probe")) {
 			init_probe();
