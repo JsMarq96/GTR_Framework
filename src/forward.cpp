@@ -111,14 +111,7 @@ inline void GTR::Renderer::forwardSingleRenderDrawCall(const sDrawCall& draw_cal
 	// Set the shadowmap
 	shadowmap_renderer.bind_shadows(shader);
 
-	// Bind GI
-	if (use_GI) {
-		irradiance_component.bind_GI(shader);
-		shader->setUniform("u_use_irradiance", 1);
-	}
-	else {
-		shader->setUniform("u_use_irradiance", 0);
-	}
+	irradiance_component.bind_GI(shader);
 	
 	if (reflections) {
 		reflections_component.bind_reflections(draw_call.aabb.center, shader);

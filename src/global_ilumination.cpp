@@ -105,6 +105,9 @@ void GTR::sGI_Component::render_to_probe(const std::vector<BaseEntity*> &entity_
 
 		renderer_instance->render_skybox(&render_cam);
 
+		bool prev_state = use_GI;
+		use_GI = false;
+
 		// First, render the opaque object
 		for (uint16_t i = 0; i < culling_result._opaque_objects.size(); i++) {
 			renderer_instance->forwardSingleRenderDrawCall(culling_result._opaque_objects[i], &render_cam, vec3(0.0f, 0.0f, 0.0f), false, false);
@@ -114,6 +117,8 @@ void GTR::sGI_Component::render_to_probe(const std::vector<BaseEntity*> &entity_
 		for (uint16_t i = 0; i < culling_result._translucent_objects.size(); i++) {
 			renderer_instance->forwardSingleRenderDrawCall(culling_result._translucent_objects[i], &render_cam, vec3(0.0f, 0.0f, 0.0f), false, false);
 		}
+
+		use_GI = prev_state;
 
 		culling_result.clear();
 
@@ -134,8 +139,6 @@ void GTR::sGI_Component::render_imgui() {
 		bool has_updated = ImGui::SliderFloat3("Probe area position", (float*)&origin_probe_position, -3000.0f, 3000.0f);
 		bool has_updated2 = ImGui::SliderFloat3("Probe area size", (float*)&probe_area_size, 1.0f, 100.0f);
 		bool has_updated3 = ImGui::SliderFloat("Probe distance", &probe_distnace_radius, 100.0f, 1000.0f);
-		//has_updated = has_updated && has_updated2;
-		//has_updated = has_updated && has_updated3;
 
 		if (has_updated || has_updated2 || has_updated3) {
 			create_probe_area(origin_probe_position, probe_area_size, probe_distnace_radius);
@@ -146,6 +149,7 @@ void GTR::sGI_Component::render_imgui() {
 		}
 
 		ImGui::Checkbox("Use irradiance", &use_GI);
+		ImGui::Checkbox("Show render probes", &debug_show_spheres);
 
 		ImGui::TreePop();
 	}

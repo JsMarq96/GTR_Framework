@@ -227,8 +227,6 @@ namespace GTR {
 			tonemapping_component.imgui_config();
 			irradiance_component.render_imgui();
 			reflections_component.debug_imgui();
-			ImGui::Checkbox("Use GI", &use_irradiance);
-			ImGui::Checkbox("Show render probes", &irradiance_component.debug_show_spheres);
 #endif
 		}
 	};

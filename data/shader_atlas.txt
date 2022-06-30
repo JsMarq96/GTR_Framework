@@ -1477,10 +1477,10 @@ void main()
 	vec3 v = normalize(u_camera_position - v_world_position);
 	vec3 r = reflect(v, normalize(frag_data.normal));
 	float n_dot_v = clamp(dot(frag_data.normal, v), 0.0001, 1.0);
-	vec3 specular_sample = de_gamma(textureLod(u_skybox_texture, r, frag_data.roughness * 9.0).rgb);
+	vec3 specular_sample = de_gamma(textureLod(u_skybox_texture, r, frag_data.roughness * 10.0).rgb);
 	vec3 fresnel_IBL = fresnel_schlick(n_dot_v, specular_sample, frag_data.metalness);
 	
-	vec3 IBL = specular_sample * (frag_data.metalness);
+	vec3 IBL = specular_sample * (frag_data.metalness * 0.5);
 
 	FragColor = vec4(final_color + IBL, color.a);
 }

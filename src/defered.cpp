@@ -220,6 +220,13 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene, CULLING::sSceneCulli
 
 	irradiance_component.bind_GI(shader_pass);
 
+	if (reflections_component.enable_reflections) {
+		reflections_component.bind_reflections(camera->eye, shader_pass);
+	}
+	else {
+		shader_pass->setUniform("u_skybox_texture", skybox_texture, 9);
+	}
+
 	shadowmap_renderer.bind_shadows(shader_pass);
 
 	Mesh* quad = Mesh::getQuad();
