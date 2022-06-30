@@ -204,7 +204,7 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene, CULLING::sSceneCulli
 		light_color[light_count] = light_ent->color;
 		light_max_distance[light_count] = light_ent->max_distance;
 		light_intensities[light_count] = light_ent->intensity;
-		light_shadow_id[light_count] = light_ent->light_id;
+		light_shadow_id[light_count] = light_ent->shadow_id;
 		light_direction[light_count] = light_ent->get_model().frontVector() * -1.0f;
 	}
 
@@ -216,17 +216,15 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene, CULLING::sSceneCulli
 	shader_pass->setUniform1Array("u_light_intensities", light_intensities, light_count);
 	shader_pass->setUniform3Array("u_light_direction", (float*)light_direction, light_count);
 	shader_pass->setUniform("u_num_lights", light_count);
-	shader_pass->setUniform("u_skybox_texture", skybox_texture, 9);
 
 	irradiance_component.bind_GI(shader_pass);
 
 	if (reflections_component.enable_reflections) {
 		reflections_component.bind_reflections(camera->eye, shader_pass);
-	}
-	else {
+	} else {
 		shader_pass->setUniform("u_skybox_texture", skybox_texture, 9);
 	}
-
+	shader_pass->setUniform("u_skybox_env_texture", skybox_texture, 9);
 	shadowmap_renderer.bind_shadows(shader_pass);
 
 	Mesh* quad = Mesh::getQuad();

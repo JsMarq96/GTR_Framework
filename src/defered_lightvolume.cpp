@@ -5,12 +5,12 @@
 void GTR::Renderer::renderDeferredLightVolumes(CULLING::sSceneCulling *scene_data) {
 	// Set depth test as only max, without writting to it
 	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_GREATER);
+	//glDepthFunc(GL_GREATER);
 	glDepthMask(false);
 	
 	// Face culling configureg to only render backface, to avoid overdraw
 	glEnable(GL_CULL_FACE);
-	glFrontFace(GL_CW);
+	//glFrontFace(GL_CW);
 
 	// Enable additive blending
 	glEnable(GL_BLEND);
@@ -73,7 +73,7 @@ void GTR::Renderer::renderDeferredLightVolumes(CULLING::sSceneCulling *scene_dat
 		shader->setUniform("u_light_pos", model.getTranslation());
 		shader->setUniform("u_light_color", light->color);
 		shader->setUniform("u_light_type", light->light_type);
-		shader->setUniform("u_light_shadow_id", (int)light->light_id);
+		shader->setUniform("u_light_shadow_id", (int)light->shadow_id);
 		shader->setUniform("u_light_max_dist", light_size);
 		shader->setUniform("u_light_intensities", light->intensity);
 		shader->setUniform("u_light_direction", light->get_model().frontVector() * -1.0f);

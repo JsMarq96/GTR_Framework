@@ -81,7 +81,7 @@ namespace GTR {
 		sReflections_Component reflections_component;
 
 		// CONFIG FLAGS =====
-		eRenderPipe current_pipeline = FORWARD;
+		eRenderPipe current_pipeline = DEFERRED;
 
 		bool use_single_pass = true;
 		bool render_light_volumes = false;
