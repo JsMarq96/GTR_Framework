@@ -130,20 +130,24 @@ void GTR::sGI_Component::render_to_probe(const std::vector<BaseEntity*> &entity_
 }
 
 void GTR::sGI_Component::render_imgui() {
-	vec3 pos = origin_probe_position;
+	if (ImGui::TreeNode("Global illumination")) {
+		bool has_updated = ImGui::SliderFloat3("Probe area position", (float*)&origin_probe_position, -3000.0f, 3000.0f);
+		bool has_updated2 = ImGui::SliderFloat3("Probe area size", (float*)&probe_area_size, 1.0f, 100.0f);
+		bool has_updated3 = ImGui::SliderFloat("Probe distance", &probe_distnace_radius, 100.0f, 1000.0f);
+		//has_updated = has_updated && has_updated2;
+		//has_updated = has_updated && has_updated3;
 
-	bool has_updated = ImGui::SliderFloat3("Probe area position",(float*) &origin_probe_position, -3000.0f, 3000.0f);
-	bool has_updated2 = ImGui::SliderFloat3("Probe area size", (float*) &probe_area_size, 1.0f, 100.0f);
-	bool has_updated3 = ImGui::SliderFloat("Probe distance", &probe_distnace_radius, 100.0f, 1000.0f);
-	//has_updated = has_updated && has_updated2;
-	//has_updated = has_updated && has_updated3;
+		if (has_updated || has_updated2 || has_updated3) {
+			create_probe_area(origin_probe_position, probe_area_size, probe_distnace_radius);
+		}
 
-	if (has_updated || has_updated2 || has_updated3) {
-		create_probe_area(origin_probe_position, probe_area_size, probe_distnace_radius);
-	}
+		if (ImGui::Button("Compute GI")) {
+			compute_all_probes(*renderer_instance->entity_list);
+		}
 
-	if (ImGui::Button("Compute GI")) {
-		compute_all_probes(*renderer_instance->entity_list);
+		ImGui::Checkbox("Use irradiance", &use_GI);
+
+		ImGui::TreePop();
 	}
 }
 

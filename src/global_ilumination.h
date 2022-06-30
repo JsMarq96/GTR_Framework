@@ -32,6 +32,8 @@ namespace GTR {
 
 		bool debug_show_spheres = false;
 
+		bool use_GI = false;
+
 		void init(Renderer *rend_inst);
 
 		void create_probe_area(const vec3 postion, const vec3 size, const float probe_area_size);
@@ -56,6 +58,11 @@ namespace GTR {
 			shad->setUniform("u_irr_tex_size", vec2(probe_texture->width, probe_texture->height));
 			shad->setUniform("u_irr_probe_count", probe_size);
 			//std::cout << probe_count << std::endl;
+			if (use_GI) {
+				shad->setUniform("u_use_irradiance", 1);
+			} else {
+				shad->setUniform("u_use_irradiance", 0);
+			}
 		}
 	};
 };

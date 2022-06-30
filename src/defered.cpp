@@ -184,6 +184,7 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene, CULLING::sSceneCulli
 	shader_pass->setUniform("u_camera_nearfar", vec2(0.1, camera->far_plane));
 	shader_pass->setUniform("u_viewprojection", camera->viewprojection_matrix);
 	shader_pass->setUniform("u_camera_position", camera->eye);
+	shader_pass->setUniform("u_camera_near_far", vec2(camera->near_plane, camera->far_plane));
 	float t = getTime();
 	shader_pass->setUniform("u_time", t);
 
@@ -216,6 +217,8 @@ void GTR::Renderer::renderDefferredPass(const Scene* scene, CULLING::sSceneCulli
 	shader_pass->setUniform3Array("u_light_direction", (float*)light_direction, light_count);
 	shader_pass->setUniform("u_num_lights", light_count);
 	shader_pass->setUniform("u_skybox_texture", skybox_texture, 9);
+
+	irradiance_component.bind_GI(shader_pass);
 
 	shadowmap_renderer.bind_shadows(shader_pass);
 
