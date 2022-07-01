@@ -1732,3 +1732,144 @@ void main()
 	FragColor = vec4(de_gamma(texture(u_texture, V).rgb), 1.0);
 	//FragColor = vec4(1.0);
 }
+
+\volumetric.fs
+#version 330 core
+
+in vec2 v_uv;
+
+uniform vec2 u_camera_nearfar;
+uniform vec3 u_camera_position;
+
+uniform sampler2D u_depth_tex;
+uniform vec2 u_near_far;
+uniform mat4 v_viewprojection_inv;
+
+// Ray properties
+uniform float u_ray_max_len;
+uniform int u_ray_sample_num;
+uniform float u_air_density;
+
+// Lights properties
+uniform vec3 u_ambient_light;
+const int MAX_LIGHT = 5;
+uniform int u_light_shadow_id[MAX_LIGHT];
+uniform vec3 u_light_pos[MAX_LIGHT];
+uniform vec3 u_light_color[MAX_LIGHT];
+uniform int u_light_type[MAX_LIGHT];
+uniform float u_light_max_dist[MAX_LIGHT];
+uniform float u_light_intensities[MAX_LIGHT];
+uniform int u_num_lights;
+// Spot light uniforms
+uniform float u_light_cone_angle[MAX_LIGHT];
+uniform float u_light_cone_decay[MAX_LIGHT];
+uniform vec3 u_light_direction[MAX_LIGHT];
+
+// Shadows uniforms
+const int MAX_SHADOWS = 5;
+uniform sampler2D u_shadow_map;
+uniform mat4 u_shadow_vp[MAX_LIGHT];
+uniform float u_shadow_bias;
+
+out vec4 FragColor;
+
+vec3 get_world_position_from_depth(const in vec2 uv, out float d) {
+	d = texture2D(u_depth_tex, uv).x;	
+	vec4 clip = vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
+	vec4 world_pos = v_viewprojection_inv * clip;
+
+	return world_pos.xyz / world_pos.w;
+}
+
+vec3 compute_light_contibution(vec3 world_position) {
+	vec3 light_component = vec3(0.0);
+	for(int i = 0; i < MAX_LIGHT; i++) {
+		if (i >= u_num_lights) {
+			continue;
+		}
+
+		float shadow_compoment = 1.0;
+
+		if (u_light_type[i] != 0) { // Calculate if its in shadow if its not a point-light
+			shadow_compoment = get_shadow_component(u_light_shadow_id[i], world_position);
+		}
+
+		if (shadow_compoment == 0) {
+			continue;
+		}
+
+		// Quadratic light attenuation
+		float light_attenuation = 1.0;
+
+		if (u_light_type[i] != 1) {
+			light_attenuation = u_light_max_dist[i] - length(u_light_pos[i] - world_position);
+			light_attenuation = max(light_attenuation / u_light_max_dist[i], 0.0); 
+			light_attenuation *= light_attenuation;
+		}
+
+		vec3 L = vec3(0.0);
+		vec3 D = normalize(u_light_direction[i]);
+
+		if (u_light_type == 1) { // Directional light
+			L = normalize(u_light_direction);
+		} else {	
+			L = normalize(u_light_pos - world_position);
+		}
+				
+		float n_dot_l = max(dot(L, N), 0.0);
+		float l_dot_d = dot(D, L);
+
+		if (u_light_type[i] == 2) { // Spot light
+			if (l_dot_d >= u_light_cone_angle[i]) {
+				// If the fragment to light direction is inside the angle of the spotlight
+				light_component += (pow(l_dot_d, u_light_cone_decay[i]) * de_gamma(u_light_color[i])) * u_light_intensities[i] * light_attenuation;
+			}
+		} else { // For point light & directional light
+			light_component += (de_gamma(u_light_color[i])) * u_light_intensities[i] * light_attenuation;
+		}
+	}
+
+	return light_component;
+}
+
+void main() {
+	float depth = 0.0;
+	vec3 world_pos = get_world_position_from_depth(v_uv, depth);
+
+	// Linearize depth
+	float n = u_camera_nearfar.x;
+	float f = u_camera_nearfar.y;
+	depth = n * (depth + 1.0) / (f + n - depth * (f - n));
+
+	if (depth >= 1.0) {
+		// The sky, so skip!
+	}
+
+	// Ray config
+	vec3 ray_start = u_camera_position;
+	vec3 ray_dir = (world_pos - ray_start);
+	float ray_length = min(length(ray_dir), u_ray_max_len); // Set max ray distance
+	ray_dir = normalize(ray_dir);
+	float ray_step_distance = ray_length / u_ray_sample_num;
+	vec3 ray_step = ray_dir * ray_step_distance;
+
+	vec3 ray_curr_pos = ray_start;
+	float curr_transparency = 1.0;
+	vec3 color_result = vec3(0.0);
+	for(int i = 0; i < u_ray_sample_num; i++) {
+		vec3 light_contrib = compute_light_contibution(ray_curr_pos);
+
+		color_result += light_contrib * curr_transparency * u_air_density * ray_step_distance;
+
+		curr_transparency -= u_air_density * ray_step_distance;
+
+		if (curr_transparency < 0.001) {
+			break;
+		}
+
+		// Move forward the ray
+		ray_curr_pos += ray_step;
+	}
+
+	FragColor = vec4(color_result, curr_transparency);
+} 
