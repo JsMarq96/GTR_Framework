@@ -12,7 +12,7 @@ namespace GTR {
 
 		int sample_size = 100;
 		float max_ray_len = 800.0f;
-		float air_density = 0.5f;
+		float air_density = 0.1f;
 
 		int comp_blur_size = 4;
 
