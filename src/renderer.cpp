@@ -87,6 +87,10 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 
 	end_result->toViewport();
 
+	if (current_pipeline == DEFERRED) {
+		volumetric_component.render(camera, vec2(), &culling_result, &shadowmap_renderer, deferred_gbuffer->depth_texture);
+	}
+
 	// Cleanup & debug
 	culling_result.clear();
 
@@ -246,6 +250,7 @@ void Renderer::init() {
 	tonemapping_component.init();
 	irradiance_component.init(this);
 	reflections_component.init(this);
+	volumetric_component.init(vec2(Application::instance->window_width, Application::instance->window_height));
 
 	final_illumination_fbo = new FBO();
 

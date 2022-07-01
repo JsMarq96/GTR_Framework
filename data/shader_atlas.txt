@@ -23,6 +23,7 @@ deferred_world_pos quad.vs deferred_world_pos.fs
 ao_pass quad.vs ao_pass.fs
 uncharted_tonemapper quad.vs uncharted_tonemapping_pass.fs
 perception_tonemapper quad_max_lum.vs perception_tonemapping_pass.fs
+volumetric quad.vs volumetric.fs
 // Tools
 compute_lum quad.vs compute_lum.fs
 blur quad.vs blur.fs
@@ -1737,13 +1738,13 @@ void main()
 #version 330 core
 
 in vec2 v_uv;
+in mat4 v_viewprojection_inv;
 
 uniform vec2 u_camera_nearfar;
 uniform vec3 u_camera_position;
 
 uniform sampler2D u_depth_tex;
 uniform vec2 u_near_far;
-uniform mat4 v_viewprojection_inv;
 
 // Ray properties
 uniform float u_ray_max_len;
@@ -1751,8 +1752,7 @@ uniform int u_ray_sample_num;
 uniform float u_air_density;
 
 // Lights properties
-uniform vec3 u_ambient_light;
-const int MAX_LIGHT = 5;
+const int MAX_LIGHT = 7;
 uniform int u_light_shadow_id[MAX_LIGHT];
 uniform vec3 u_light_pos[MAX_LIGHT];
 uniform vec3 u_light_color[MAX_LIGHT];
@@ -1766,12 +1766,15 @@ uniform float u_light_cone_decay[MAX_LIGHT];
 uniform vec3 u_light_direction[MAX_LIGHT];
 
 // Shadows uniforms
-const int MAX_SHADOWS = 5;
+const int MAX_SHADOWS = 7;
 uniform sampler2D u_shadow_map;
 uniform mat4 u_shadow_vp[MAX_LIGHT];
 uniform float u_shadow_bias;
 
 out vec4 FragColor;
+
+#include "depth_functions"
+#include "hdr_tonemapping"
 
 vec3 get_world_position_from_depth(const in vec2 uv, out float d) {
 	d = texture2D(u_depth_tex, uv).x;	
@@ -1810,13 +1813,12 @@ vec3 compute_light_contibution(vec3 world_position) {
 		vec3 L = vec3(0.0);
 		vec3 D = normalize(u_light_direction[i]);
 
-		if (u_light_type == 1) { // Directional light
-			L = normalize(u_light_direction);
+		if (u_light_type[i] == 1) { // Directional light
+			L = normalize(u_light_direction[i]);
 		} else {	
-			L = normalize(u_light_pos - world_position);
+			L = normalize(u_light_pos[i] - world_position);
 		}
 				
-		float n_dot_l = max(dot(L, N), 0.0);
 		float l_dot_d = dot(D, L);
 
 		if (u_light_type[i] == 2) { // Spot light
@@ -1843,6 +1845,8 @@ void main() {
 
 	if (depth >= 1.0) {
 		// The sky, so skip!
+		FragColor = vec4(0.0);
+		return;
 	}
 
 	// Ray config

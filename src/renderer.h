@@ -20,6 +20,7 @@
 #include "extra/hdre.h"
 #include "frusturm_culling.h"
 #include "reflections.h"
+#include "volumetric.h"
 #include <functional>
 #include <algorithm>
 
@@ -79,6 +80,7 @@ namespace GTR {
 		Tonemapping_Component tonemapping_component;
 		sGI_Component irradiance_component;
 		sReflections_Component reflections_component;
+		sVolumetric_Component volumetric_component;
 
 		// CONFIG FLAGS =====
 		eRenderPipe current_pipeline = DEFERRED;
@@ -227,6 +229,7 @@ namespace GTR {
 			tonemapping_component.imgui_config();
 			irradiance_component.render_imgui();
 			reflections_component.debug_imgui();
+			volumetric_component.render_imgui();
 #endif
 		}
 	};
