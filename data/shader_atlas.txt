@@ -31,6 +31,7 @@ bloom quad.vs bloom.fs
 // Tools
 compute_lum quad.vs compute_lum.fs
 blur quad.vs blur.fs
+blur_and_sum quad.vs blur_and_sum.fs
 compute_max_and_avg_lum quad.vs compute_max_and_avg_lum.fs
 
 \sphere_harmonics
@@ -1255,6 +1256,35 @@ void main() {
 	o_frag_blur = result / (filter_size * filter_size);
 }
 
+\blur_and_sum.fs
+
+#version 330 core
+
+in vec2 v_uv;
+
+uniform sampler2D u_to_blur_tex;
+uniform sampler2D u_color_tex;
+
+out vec4 o_frag_blur;
+
+const float filter_size = 10.0;
+
+void main() {
+	vec2 texel_size = 1.0 / vec2(textureSize(u_to_blur_tex, 0));
+	vec3 result = vec3(0.0);
+
+	for(int x = int(filter_size / -2); x < (filter_size / 2); x++) {
+		for(int y = int(filter_size / -2); y < (filter_size / 2); y++) {
+			vec2 offset = vec2(float(x), float(y)) * texel_size;
+			result += texture(u_to_blur_tex, v_uv + offset).rgb;
+		}
+	}
+
+	result = result / (filter_size * filter_size);
+
+	o_frag_blur = vec4(result + textureLod(u_color_tex, v_uv, 0).rgb, 1.0);
+}
+
 \irradiance
 
 #include "sphere_harmonics"
@@ -1966,7 +1996,8 @@ void main() {
 in vec2 v_uv;
 
 uniform sampler2D u_color_tex;
-uniform float u_threshold;
+uniform float u_threshold_max;
+uniform float u_threshold_min;
 
 out vec4 FragColor;
 
@@ -1974,7 +2005,7 @@ void main() {
 	vec4 pixel_color = textureLod(u_color_tex, v_uv, 0);
 	float pixel_luma = (pixel_color.r * 0.3) + (pixel_color.g * 0.59) + (pixel_color.b * 0.11);
 
-	if (pixel_luma < u_threshold) {
+	if (pixel_luma < u_threshold_min) {
 		FragColor = vec4(0.0);
 		return;
 	}
@@ -1996,23 +2027,14 @@ uniform int u_max_LOD;
 
 out vec4 FragColor;
 
-const float TWO_PI = 6.28318530718;
-const float E = 2.71828182846;
-const float Spread = 4.0;
-float gaussian(float x, float y)
-{
-    const float sigmaSqu = Spread * Spread;
-    return (1.0 / sqrt(TWO_PI * sigmaSqu)) * pow(E, -((x * x) + (y * y)) / (2.0 * sigmaSqu));
-}
-
 // psudo Gaussian blur from: https://www.shadertoy.com/view/Xltfzj
 vec3 Blur(vec2 uv, int LOD) {
     float pi2 = 6.28318530718; // Pi*2
     
     // GAUSSIAN BLUR SETTINGS
-    float directions = 16.0;
-    float quality = 6.0;
-    float size = 1.5;
+    float directions = 15.0;
+    float quality = 8.0;
+    float size = 1.00;
    
     vec2 radius = size/textureSize(u_color_tex, LOD).xy;
     
@@ -2031,9 +2053,6 @@ vec3 Blur(vec2 uv, int LOD) {
     Color /= quality * directions - 15.0;
 	return Color;
 }
-
-
-
 
 void main() {
 	float level_step = max(u_max_step_LOD / u_bloom_steps_num, u_min_step);

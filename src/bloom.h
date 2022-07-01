@@ -17,7 +17,8 @@ namespace GTR {
 		int max_LOD = 3;
 		int min_step_size = 1;
 
-		float threshold = 0.5f;
+		float threshold_min = 0.5f;
+		float threshold_max = 10.5f;
 
 		bool enabled_bloom = true;
 
