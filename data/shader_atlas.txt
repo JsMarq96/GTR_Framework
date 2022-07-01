@@ -24,6 +24,7 @@ ao_pass quad.vs ao_pass.fs
 uncharted_tonemapper quad.vs uncharted_tonemapping_pass.fs
 perception_tonemapper quad_max_lum.vs perception_tonemapping_pass.fs
 volumetric quad.vs volumetric.fs
+comp_volumetric quad.vs comp_volumetric.fs
 // Tools
 compute_lum quad.vs compute_lum.fs
 blur quad.vs blur.fs
@@ -1771,7 +1772,7 @@ uniform sampler2D u_shadow_map;
 uniform mat4 u_shadow_vp[MAX_LIGHT];
 uniform float u_shadow_bias;
 
-out vec4 FragColor;
+layout(location = 0) out vec4 FragColor;
 
 #include "depth_functions"
 #include "hdr_tonemapping"
@@ -1845,8 +1846,8 @@ void main() {
 
 	if (depth >= 1.0) {
 		// The sky, so skip!
-		FragColor = vec4(0.0);
-		return;
+		//FragColor = vec4(0.0);
+		//return;
 	}
 
 	// Ray config
@@ -1875,5 +1876,38 @@ void main() {
 		ray_curr_pos += ray_step;
 	}
 
-	FragColor = vec4(color_result, curr_transparency);
+	FragColor = vec4(color_result * 10.0, 1.0 - curr_transparency);
 } 
+
+
+\comp_volumetric.fs
+#version 330 core
+
+in vec2 v_uv;
+
+uniform sampler2D u_volumetric;
+uniform sampler2D u_color;
+uniform int u_filter_size;
+
+out vec4 FragColor;
+
+vec4 get_blur_sample() {
+	vec2 texel_size = 1.0 / vec2(textureSize(u_volumetric, 0).xy);
+	vec4 result = vec4(0.0);
+
+	for(int x = int(u_filter_size / -2); x < (u_filter_size / 2); x++) {
+		for(int y = int(u_filter_size / -2); y < (u_filter_size / 2); y++) {
+			vec2 offset = vec2(float(x), float(y)) * texel_size;
+			result += texture(u_volumetric, v_uv + offset).rgba;
+		}
+	}
+
+	return result / (u_filter_size * u_filter_size);
+}
+
+void main () {
+	vec4 vol_sample = get_blur_sample();
+	vec3 color_sample = texture(u_color, v_uv).rgb;
+	FragColor = vec4(mix(color_sample, vol_sample.rgb, vol_sample.a), 1.0);
+	FragColor = vec4(color_sample +  (vol_sample.rgb - vec3(vol_sample.a)), 1.0);
+}
