@@ -19,6 +19,7 @@ deferred_plane_traslucent basic.vs deferred_plain_traslucent.fs
 deferred_lightpass basic.vs deferred_lightpass.fs
 deferred_pass quad.vs deferred_pass.fs
 deferred_world_pos quad.vs deferred_world_pos.fs
+deferred_decals basic.vs deferred_decals.fs
 // Render Passes & Effects
 ao_pass quad.vs ao_pass.fs
 uncharted_tonemapper quad.vs uncharted_tonemapping_pass.fs
@@ -165,6 +166,7 @@ out vec3 v_normal;
 out vec2 v_uv;
 out vec4 v_color;
 out mat4 v_viewprojection_inv;
+out mat4 v_model_inv;
 
 uniform float u_time;
 
@@ -184,6 +186,8 @@ void main()
 	v_uv = a_coord;
 
 	v_viewprojection_inv = inverse(u_viewprojection);
+
+	v_model_inv = inverse(u_model);
 
 	//calcule the position of the vertex using the matrices
 	gl_Position = u_viewprojection * vec4( v_world_position, 1.0 );
@@ -1910,4 +1914,47 @@ void main () {
 	vec3 color_sample = texture(u_color, v_uv).rgb;
 	FragColor = vec4(mix(color_sample, vol_sample.rgb, vol_sample.a), 1.0);
 	FragColor = vec4(color_sample +  (vol_sample.rgb - vec3(vol_sample.a)), 1.0);
+}
+
+
+\deferred_decals.fs
+#version 330 core
+
+in mat4 v_viewprojection_inv;
+in mat4 v_model_inv;
+
+uniform vec2 u_iRes;
+uniform sampler2D u_color_tex;
+uniform sampler2D u_depth_tex;
+
+layout(location = 0) out vec4 o_frag_albedo;
+
+
+vec3 get_world_position_from_depth(const in vec2 uv) {
+	float d = texture2D(u_depth_tex, uv).x;	
+	vec4 clip = vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
+	vec4 world_pos = v_viewprojection_inv * clip;
+
+	return world_pos.xyz / world_pos.w;
+}
+
+void main() {
+	vec2 uv = gl_FragCoord.xy * u_iRes.xy;
+
+	vec3 world_pos = get_world_position_from_depth(uv);
+
+	vec3 local_pos = (v_model_inv * vec4(world_pos, 1.0)).xyz;
+
+	if( local_pos.x < -0.5 || local_pos.x > 0.5 ||
+    	local_pos.y < -0.5 || local_pos.y > 0.5 ||
+    	local_pos.z < -0.5 || local_pos.z > 0.5 )
+		discard;
+
+	vec2 decal_uv = local_pos.xz + vec2(0.5);
+
+	vec4 decal_albedo = texture(u_color_tex, decal_uv);
+
+
+	
+	o_frag_albedo = decal_albedo;
 }

@@ -89,6 +89,24 @@ inline void GTR::Renderer::forwardOpacyRenderDrawCall(const sDrawCall& draw_call
 	glDisable(GL_BLEND);
 }
 
+void GTR::Renderer::deferredRenderDecal(const DecalEntity* ent, Camera *cam, Texture* depth) {
+	Mesh cube;
+	cube.createCube();
+
+	Shader* shader = Shader::Get("deferred_decals");
+
+	shader->enable();
+	shader->setUniform("u_viewprojection", camera->viewprojection_matrix);
+	shader->setUniform("u_model", ent->model);
+	shader->setUniform("u_color_tex", ent->color_tex, 1);
+	shader->setUniform("u_depth_tex", depth, 2);
+	shader->setUniform("u_iRes", vec2(Application::instance->window_width, Application::instance->window_height));
+	
+	cube.render(GL_TRIANGLES);
+
+	shader->disable();
+}
+
 void GTR::Renderer::deferredRenderScene(const Scene* scene, Camera* camera, FBO* resulting_fbo, CULLING::sSceneCulling* scene_data) {
 	deferred_gbuffer->bind();
 
@@ -116,6 +134,70 @@ void GTR::Renderer::deferredRenderScene(const Scene* scene, Camera* camera, FBO*
 	//std::cout << _opaque_objects.size() << std::endl;
 	for (uint16_t i = 0; i < scene_data->_opaque_objects.size(); i++) {
 		renderDeferredPlainDrawCall(scene_data->_opaque_objects[i], scene);
+	}
+
+	if (scene->decals.size() > 0) {
+		// Copy depth bufffer
+		deferred_gbuffer->unbind();
+		if (depth_decal_fbo == NULL) {
+			depth_decal_fbo = new FBO();
+			depth_decal_fbo->create(deferred_gbuffer->width, deferred_gbuffer->height, 4, GL_RGBA, GL_FLOAT, true);
+		}
+
+		//depth_decal_fbo->bind();
+		deferred_gbuffer->color_textures[0]->copyTo(depth_decal_fbo->color_textures[0]);
+		deferred_gbuffer->color_textures[1]->copyTo(depth_decal_fbo->color_textures[1]);
+		deferred_gbuffer->color_textures[2]->copyTo(depth_decal_fbo->color_textures[2]);
+		deferred_gbuffer->color_textures[3]->copyTo(depth_decal_fbo->color_textures[3]);
+		
+		
+		depth_decal_fbo->bind();
+		deferred_gbuffer->depth_texture->copyTo(NULL);
+		depth_decal_fbo->unbind();
+
+		deferred_gbuffer->bind();
+
+		glEnable(GL_DEPTH_TEST);
+		glDepthMask(false);
+		glDepthFunc(GL_LEQUAL);
+
+		glEnable(GL_CULL_FACE);
+		//glFrontFace(GL_CW);
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glColorMask(true, true, true, false);
+
+		deferred_gbuffer->enableAllBuffers();
+
+		Mesh cube;
+		cube.createCube();
+
+		Shader* shader = Shader::Get("deferred_decals");
+
+		shader->enable();
+
+		shader->setUniform("u_viewprojection", camera->viewprojection_matrix);
+		shader->setUniform("u_iRes", vec2(1.0f / (float)Application::instance->window_width, 1.0f/ (float) Application::instance->window_height));
+		shader->setUniform("u_depth_tex", depth_decal_fbo->depth_texture, 3);
+
+
+		for (int i = 0; i < scene->decals.size(); i++) {
+			
+			shader->setUniform("u_model", scene->decals[i]->model);
+			shader->setUniform("u_color_tex", scene->decals[i]->color_tex, 1);
+			cube.render(GL_TRIANGLES);
+		}
+		
+		shader->disable();
+
+		
+		glColorMask(true, true, true, true);
+		glDepthFunc(GL_LEQUAL);
+		glFrontFace(GL_CCW);
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_BLEND);
+		glDepthMask(true);
 	}
 
 	deferred_gbuffer->unbind();

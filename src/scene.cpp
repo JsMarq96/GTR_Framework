@@ -21,6 +21,7 @@ void GTR::Scene::clear()
 		delete ent;
 	}
 	entities.resize(0);
+	decals.resize(0);
 }
 
 
@@ -139,6 +140,10 @@ GTR::BaseEntity* GTR::Scene::createEntity(std::string type)
 	}
 	else if (type == "LIGHT") {
 		return (GTR::BaseEntity*) new GTR::LightEntity();
+	} else if (type == "DECAL") {
+		DecalEntity* decal = new GTR::DecalEntity();
+		decals.push_back(decal);
+		return (GTR::BaseEntity*) decal;
 	}
     return NULL;
 }
@@ -268,4 +273,17 @@ void GTR::LightEntity::renderInMenu() {
 	//Model edit
 	ImGuiMatrix44(model, "Model");
 #endif
+}
+
+
+// DECAL ENTITY =================
+void GTR::DecalEntity::renderInMenu() {
+	// Empty for now
+}
+void GTR::DecalEntity::configure(cJSON* json) {
+	if (cJSON_GetObjectItem(json, "albedo")) {
+		texture_dir = cJSON_GetObjectItem(json, "albedo")->valuestring;
+
+		color_tex = Texture::Get((std::string("data/") + texture_dir).c_str());
+	}
 }

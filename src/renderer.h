@@ -96,6 +96,8 @@ namespace GTR {
 		bool show_shadowmap = false;
 		bool liniearize_shadowmap_vis = false;
 
+		FBO *depth_decal_fbo = NULL;
+
 	public:
 		std::vector<BaseEntity*>* entity_list;
 		Scene* current_scene;
@@ -111,6 +113,8 @@ namespace GTR {
 		void forwardOpacyRenderDrawCall(const sDrawCall& draw_call, const Scene* scene);
 		void renderDeferredLightVolumes(CULLING::sSceneCulling* scene_data);
 		void tonemappingPass();
+
+		void deferredRenderDecal(const DecalEntity* ent, Camera* cam, Texture* depth);
 
 		void render_skybox(Camera* camera);
 

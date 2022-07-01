@@ -3,6 +3,7 @@
 
 #include "framework.h"
 #include "camera.h"
+#include "texture.h"
 #include <string>
 #include <algorithm>
 #include <iostream>
@@ -31,6 +32,7 @@ namespace GTR {
 
 	class Scene;
 	class Prefab;
+	class DecalEntity;
 
 	//represents one element of the scene (could be lights, prefabs, cameras, etc)
 	class BaseEntity
@@ -74,6 +76,7 @@ namespace GTR {
 
 		std::string filename;
 		std::vector<BaseEntity*> entities;
+		std::vector<DecalEntity*> decals;
 		std::unordered_map<std::string, PrefabEntity*> prefab_storage;
 
 		inline PrefabEntity* get_prefab(const std::string& name) const {
@@ -178,6 +181,16 @@ namespace GTR {
 		inline Matrix44& get_model() {
 			return model;
 		}
+	};
+
+
+	class DecalEntity : public GTR::BaseEntity {
+	public:
+		std::string texture_dir;
+		Texture* color_tex;
+		
+		virtual void renderInMenu();
+		virtual void configure(cJSON* json);
 	};
 };
 

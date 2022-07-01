@@ -82,7 +82,7 @@ void Renderer::renderScene(GTR::Scene* scene, Camera* camera)
 	Texture* end_result = final_illumination_fbo->color_textures[0];
 
 	if (current_pipeline == DEFERRED) {
-		//end_result = volumetric_component.render(camera, vec2(), &culling_result, &shadowmap_renderer, end_result, deferred_gbuffer->depth_texture);
+		end_result = volumetric_component.render(camera, vec2(), &culling_result, &shadowmap_renderer, end_result, deferred_gbuffer->depth_texture);
 	}
 
 	// Only add tonemapping if its the final image
