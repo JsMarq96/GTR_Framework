@@ -26,6 +26,7 @@ uncharted_tonemapper quad.vs uncharted_tonemapping_pass.fs
 perception_tonemapper quad_max_lum.vs perception_tonemapping_pass.fs
 volumetric quad.vs volumetric.fs
 comp_volumetric quad.vs comp_volumetric.fs
+threshold_bloom quad.vs threshold_bloom.fs
 bloom quad.vs bloom.fs
 // Tools
 compute_lum quad.vs compute_lum.fs
@@ -1959,7 +1960,27 @@ void main() {
 	
 	o_frag_albedo = decal_albedo;
 }
+\threshold_bloom.fs
+#version 330 core
 
+in vec2 v_uv;
+
+uniform sampler2D u_color_tex;
+uniform float u_threshold;
+
+out vec4 FragColor;
+
+void main() {
+	vec4 pixel_color = textureLod(u_color_tex, v_uv, 0);
+	float pixel_luma = (pixel_color.r * 0.3) + (pixel_color.g * 0.59) + (pixel_color.b * 0.11);
+
+	if (pixel_luma < u_threshold) {
+		FragColor = vec4(0.0);
+		return;
+	}
+
+	FragColor = pixel_color;
+}
 
 \bloom.fs
 #version 330 core
@@ -1975,21 +1996,40 @@ uniform int u_max_LOD;
 
 out vec4 FragColor;
 
-vec3 box_blur(const in vec2 uv, const in int LOD) {
-	vec2 texel_size = 1.0 / vec2(textureSize(u_color_tex, LOD).xy);
-	vec3 result = vec3(0.0);
-
-	float filter_size = 5.0;
-
-	for(int x = int(filter_size / -2); x < (filter_size / 2); x++) {
-		for(int y = int(filter_size / -2); y < (filter_size / 2); y++) {
-			vec2 offset = vec2(float(x), float(y)) * texel_size;
-			result += textureLod(u_color_tex, v_uv + offset, LOD).rgb;
-		}
-	}
-
-	return result / (filter_size * filter_size);
+const float TWO_PI = 6.28318530718;
+const float E = 2.71828182846;
+const float Spread = 4.0;
+float gaussian(float x, float y)
+{
+    const float sigmaSqu = Spread * Spread;
+    return (1.0 / sqrt(TWO_PI * sigmaSqu)) * pow(E, -((x * x) + (y * y)) / (2.0 * sigmaSqu));
 }
+
+// Gaussian blur from: https://www.shadertoy.com/view/wscfz7
+vec3 Blur(vec2 texCoord, float blurSize, int LOD) {
+    float weight = 0.0;
+
+	vec3 sumColor = vec3(0);
+
+	for(float i=-5; i<=5; ++i) {
+		for(float j=-5; j<=5; ++j) {
+            vec2 curTexCoord = vec2(texCoord.x + i*blurSize, texCoord.y + j*blurSize);
+            
+            float curWeight = gaussian(i,j);
+			weight += curWeight;
+            
+            sumColor += textureLod(u_color_tex, curTexCoord, LOD).rgb * curWeight;
+        }
+    }
+    
+    if(weight>0.0)
+        sumColor /= weight;
+    
+    return sumColor;
+}
+
+
+
 
 void main() {
 	float level_step = max(u_max_step_LOD / u_bloom_steps_num, u_min_step);
@@ -1997,7 +2037,8 @@ void main() {
 	float currentLOD = 0.0;
 	vec3 result = vec3(0.0);
 	for(int i = 0; i < u_bloom_steps_num; i++) {
-		result += box_blur(v_uv, int(currentLOD));
+		//result += box_blur(v_uv, int(currentLOD)) * 1/pow(2,1 + u_bloom_steps_num - i);
+		result += Blur(v_uv, 1.0 / textureSize(u_color_tex, 0).x, int(currentLOD));
 		currentLOD += level_step;
 	}
 
