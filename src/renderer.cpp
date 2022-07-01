@@ -254,6 +254,7 @@ void Renderer::init() {
 	reflections_component.init(this);
 	volumetric_component.init(vec2(Application::instance->window_width, Application::instance->window_height));
 	bloom_component.init(vec2(Application::instance->window_width, Application::instance->window_height));
+	postFX_component.init(vec2(Application::instance->window_width, Application::instance->window_height));
 
 	final_illumination_fbo = new FBO();
 

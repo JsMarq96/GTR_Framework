@@ -7,6 +7,19 @@ void GTR::sReflections_Component::init(Renderer* rend_inst) {
 	memset(is_in_use, false, sizeof(sReflections_Component::is_in_use));
 
 	ref_fbo = new FBO();
+
+	int probe = init_probe();
+	probe_position[probe] = vec3(80.0f, 100.0, .0f);
+	probe = init_probe();
+	probe_position[probe] = vec3(-270.0f, 100.0, .0f);
+	probe = init_probe();
+	probe_position[probe] = vec3(104.0f, 100.0, 220.0f);
+	probe = init_probe();
+	probe_position[probe] = vec3(-145.0f, 100.0, 220.0f);
+	probe = init_probe();
+	probe_position[probe] = vec3(83.0f, 100.0, -244.0f);
+	probe = init_probe();
+	probe_position[probe] = vec3(-166.0f, 100.0, -244.0f);
 }
 
 void GTR::sReflections_Component::clean() {

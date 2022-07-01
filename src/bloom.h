@@ -20,7 +20,7 @@ namespace GTR {
 		float threshold_min = 0.5f;
 		float threshold_max = 10.5f;
 
-		bool enabled_bloom = true;
+		bool enabled_bloom = false;
 
 		void init(const vec2 size);
 

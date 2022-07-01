@@ -124,7 +124,7 @@
 			"type":"LIGHT",
 			"position":[150,628,50],
 			"target":[-80,0,-50],
-			"color":[0.1,0.2,0.4],
+			"color":[0.4,0.355,0.289],
 			"intensity":1.5,
 			"area_size":1500,
 			"max_dist":1000,

@@ -22,6 +22,7 @@
 #include "reflections.h"
 #include "volumetric.h"
 #include "bloom.h"
+#include "post_fx.h"
 #include <functional>
 #include <algorithm>
 
@@ -83,6 +84,7 @@ namespace GTR {
 		sReflections_Component reflections_component;
 		sVolumetric_Component volumetric_component;
 		SBloom_Component bloom_component;
+		sPostFX_Component postFX_component;
 
 		// CONFIG FLAGS =====
 		eRenderPipe current_pipeline = FORWARD;
