@@ -21,6 +21,7 @@
 #include "frusturm_culling.h"
 #include "reflections.h"
 #include "volumetric.h"
+#include "bloom.h"
 #include <functional>
 #include <algorithm>
 
@@ -81,9 +82,10 @@ namespace GTR {
 		sGI_Component irradiance_component;
 		sReflections_Component reflections_component;
 		sVolumetric_Component volumetric_component;
+		SBloom_Component bloom_component;
 
 		// CONFIG FLAGS =====
-		eRenderPipe current_pipeline = DEFERRED;
+		eRenderPipe current_pipeline = FORWARD;
 
 		bool use_single_pass = true;
 		bool render_light_volumes = false;
@@ -234,6 +236,7 @@ namespace GTR {
 			irradiance_component.render_imgui();
 			reflections_component.debug_imgui();
 			volumetric_component.render_imgui();
+			bloom_component.render_imgui();
 #endif
 		}
 	};
